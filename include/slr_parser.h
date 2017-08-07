@@ -16,7 +16,7 @@
 template<typename Lexem_type>
 struct Attributes{
     union{
-        Lexem_type eli;
+        Lexem_type li;
         struct{
             size_t begin_index;
             size_t end_index;
@@ -67,8 +67,10 @@ public:
     virtual ~SLR_parser<R_traits, Lex_traits, S>()              = default;
 
     void shift(size_t shifted_state, Lex_traits::Lexem_t e);
-    void reduce(R_traits::Rule_t r);
     void reduce_without_back(R_traits::Rule_t r);
+    void reduce(R_traits::Rule_t r);
+
+    virtual void checker(Lex_traits::Lexem_t l){}
 protected:
     size_t                                          current_state;
     Lex_traits::Lexem_t                             li;
@@ -77,4 +79,34 @@ protected:
     std::shared_ptr<S>                              scaner;
     Stack_elem<Lex_traits::Lexem_t>                 rule_body[R_traits::max_len]
 };
+
+template<typename R_traits, typename Lex_traits, typename S>
+void shift(size_t shifted_state, Lex_traits::Lexem_t e){
+    using SE = Stack_elem<Lex_traits::Lexem_t>;
+    SE selem;
+    selem.st_num  = shifted_state;
+    selem.attr.li = e;
+    parser_stack.push(selem);
+    checker(e);
+}
+
+template<typename R_traits, typename Lex_traits, typename S>
+void reduce_without_back(R_traits::Rule_t r){
+//     size_t rule_len = rules[r].len;
+//     parser_stack.get_elems_from_top(rule_body, rule_len);
+//     generate_command(r);
+//
+//     Stack_elem se;
+//     se.attr    = (this->*attrib_calc[r])();
+//     parser_stack.multi_pop(rule_len);
+//     Stack_elem top_elem = parser_stack.top();
+//     se.st_num           = next_state(top_elem.st_num, rules[r].nt);
+//     parser_stack.push(se);
+}
+
+template<typename R_traits, typename Lex_traits, typename S>
+void SLR_parser<R_traits, Lex_traits, S>::reduce(R_traits::Rule_t r){
+    reduce_without_back(r);
+    scaner->back();
+}
 #endif
