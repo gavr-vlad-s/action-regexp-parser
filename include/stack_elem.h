@@ -10,7 +10,7 @@
 #ifndef STACK_ELEM_H
 #define STACK_ELEM_H
 
-#include "../include/expr_scaner.h"
+#include "../include/expr_lexem_info.h"
 
 struct Attributes{
     union{

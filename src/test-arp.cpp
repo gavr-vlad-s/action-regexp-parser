@@ -58,27 +58,27 @@ std::u32string init_testing(const char* name)
 
 int main(int argc, char** argv)
 {
-    if(1 == argc){
-        puts("Test file is not given.");
-    }else{
-        std::u32string t = init_testing(argv[1]);
-        if(t.length()){
-            char32_t* p        = const_cast<char32_t*>(t.c_str());
-            auto      loc      = std::make_shared<Location>(p);
-
-            Errors_and_tries etr;
-            etr.ec             = std::make_shared<Error_count>();
-            etr.ids_trie       = std::make_shared<Char_trie>();
-            etr.strs_trie      = std::make_shared<Char_trie>();
-            auto aesc          = std::make_shared<Aux_expr_scaner>(loc,  etr);
-            auto trie_for_sets = std::make_shared<Trie_for_set_of_char32>();
-            auto esc           = std::make_shared<Expr_scaner>(loc, etr, trie_for_sets);
-            auto expr_parser   = std::make_unique<Simple_regex_parser>(esc, etr);
-
-            Command_buffer commands;
-            expr_parser->compile(commands);
-            print_commands(commands, trie_for_sets);
-        }
-    }
+//     if(1 == argc){
+//         puts("Test file is not given.");
+//     }else{
+//         std::u32string t = init_testing(argv[1]);
+//         if(t.length()){
+//             char32_t* p        = const_cast<char32_t*>(t.c_str());
+//             auto      loc      = std::make_shared<Location>(p);
+//
+//             Errors_and_tries etr;
+//             etr.ec             = std::make_shared<Error_count>();
+//             etr.ids_trie       = std::make_shared<Char_trie>();
+//             etr.strs_trie      = std::make_shared<Char_trie>();
+//             auto aesc          = std::make_shared<Aux_expr_scaner>(loc,  etr);
+//             auto trie_for_sets = std::make_shared<Trie_for_set_of_char32>();
+//             auto esc           = std::make_shared<Expr_scaner>(loc, etr, trie_for_sets);
+//             auto expr_parser   = std::make_unique<Simple_regex_parser>(esc, etr);
+//
+//             Command_buffer commands;
+//             expr_parser->compile(commands);
+//             print_commands(commands, trie_for_sets);
+//         }
+//     }
     return 0;
 }

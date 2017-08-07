@@ -13,15 +13,15 @@
 #include <cstdio>
 #include <cstdlib>
 
-Act_expr_parser::Act_expr_parser(Expr_scaner_ptr         esc,
-                                 const Errors_and_tries& et,
-                                 std::shared_ptr<Scope>  scope){
-    esc_         = esc;
-    scope_       = scope;
-    et_          = et;
-    parser_stack = Multipop_stack<Stack_elem>();
-}
-
+// Act_expr_parser::Act_expr_parser(Expr_scaner_ptr         esc,
+//                                  const Errors_and_tries& et,
+//                                  std::shared_ptr<Scope>  scope){
+//     esc_         = esc;
+//     scope_       = scope;
+//     et_          = et;
+//     parser_stack = Multipop_stack<Stack_elem>();
+// }
+//
 Terminal lexem2terminal(const Expr_lexem_info& l){
     switch(l.code){
         case Nothing: case UnknownLexem:
@@ -415,10 +415,10 @@ Act_expr_parser::Error_handler Act_expr_parser::error_hadler[] = {
     &Act_expr_parser::state07_error_handler  // 17 +
 };
 
-/* In this array, the rules are collected for which convolution is performed in
+/* In this array, the rules are collected for which reduce is performed in
  * error-handling functions. The number of the array element is the number of the
  * current state of the parser. If a state in the corresponding error-handling
- * function is not convoluted, then the element of this array with the corresponding
+ * function is not reduced, then the element of this array with the corresponding
  * index is (-1). */
 char reduce_rules[] = {
     -1,       -1,          -1,      -1,
