@@ -34,7 +34,7 @@ struct Stack_elem{
 
 
 enum class Parser_action_name{
-    Act_OK, Act_shift, Act_reduce, Act_reduce_without_back
+    OK, Shift, Reduce, Reduce_without_back
 };
 
 struct Parser_action_info{
@@ -81,7 +81,8 @@ protected:
 };
 
 template<typename R_traits, typename Lex_traits, typename S>
-void shift(size_t shifted_state, Lex_traits::Lexem_t e){
+void shift(size_t shifted_state, Lex_traits::Lexem_t e)
+{
     using SE = Stack_elem<Lex_traits::Lexem_t>;
     SE selem;
     selem.st_num  = shifted_state;
@@ -91,7 +92,8 @@ void shift(size_t shifted_state, Lex_traits::Lexem_t e){
 }
 
 template<typename R_traits, typename Lex_traits, typename S>
-void reduce_without_back(R_traits::Rule_t r){
+void reduce_without_back(R_traits::Rule_t r)
+{
 //     size_t rule_len = rules[r].len;
 //     parser_stack.get_elems_from_top(rule_body, rule_len);
 //     generate_command(r);
@@ -105,7 +107,8 @@ void reduce_without_back(R_traits::Rule_t r){
 }
 
 template<typename R_traits, typename Lex_traits, typename S>
-void SLR_parser<R_traits, Lex_traits, S>::reduce(R_traits::Rule_t r){
+void SLR_parser<R_traits, Lex_traits, S>::reduce(R_traits::Rule_t r)
+{
     reduce_without_back(r);
     scaner->back();
 }
