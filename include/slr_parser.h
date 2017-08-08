@@ -55,6 +55,12 @@ struct Lexem_traits{
     using Non_terminal_t = NT;
 };
 
+template<typename NT>
+struct Rule_info{
+    NT       nt;  /* target for reducing */
+    uint16_t len; /* rule length */
+};
+
 template<typename R_traits, typename Lex_traits, typename S>
 class SLR_parser{
 public:
@@ -70,7 +76,6 @@ public:
     void reduce_without_back(R_traits::Rule_t r);
     void reduce(R_traits::Rule_t r);
 
-    virtual void checker(Lex_traits::Lexem_t l){}
 protected:
     size_t                                          current_state;
     Lex_traits::Lexem_t                             li;
@@ -78,10 +83,16 @@ protected:
     Multipop_stack<Stack_elem<Lex_traits::Lexem_t>> parser_stack;
     std::shared_ptr<S>                              scaner;
     Stack_elem<Lex_traits::Lexem_t>                 rule_body[R_traits::max_len]
+
+    virtual void checker(Lex_traits::Lexem_t l)                                      {}
+    virtual Rule_info<Lex_traits::Non_terminal_t>  get_rule_info(R_traits::Rule_t r) = 0;
+    virtual void generate_command(R_traits::Rule_t r)                                = 0;
+    virtual Attributes<Lex_traits::Non_terminal_t> attrib_calc(R_traits::Rule_t r)   = 0;
+    virtual size_t next_state(size_t s, Lex_traits::Non_terminal_t n)                = 0;
 };
 
 template<typename R_traits, typename Lex_traits, typename S>
-void shift(size_t shifted_state, Lex_traits::Lexem_t e)
+void SLR_parser<R_traits, Lex_traits, S>::shift(size_t shifted_state, Lex_traits::Lexem_t e)
 {
     using SE = Stack_elem<Lex_traits::Lexem_t>;
     SE selem;
@@ -92,18 +103,21 @@ void shift(size_t shifted_state, Lex_traits::Lexem_t e)
 }
 
 template<typename R_traits, typename Lex_traits, typename S>
-void reduce_without_back(R_traits::Rule_t r)
+void SLR_parser<R_traits, Lex_traits, S>::reduce_without_back(R_traits::Rule_t r)
 {
-//     size_t rule_len = rules[r].len;
-//     parser_stack.get_elems_from_top(rule_body, rule_len);
-//     generate_command(r);
-//
-//     Stack_elem se;
-//     se.attr    = (this->*attrib_calc[r])();
-//     parser_stack.multi_pop(rule_len);
-//     Stack_elem top_elem = parser_stack.top();
-//     se.st_num           = next_state(top_elem.st_num, rules[r].nt);
-//     parser_stack.push(se);
+    auto   r_info   = get_rule_info(r);
+    size_t rule_len = r_info.len;
+    parser_stack.get_elems_from_top(rule_body, rule_len);
+    generate_command(r);
+
+    using SE = Stack_elem<Lex_traits::Lexem_t>;
+
+    SE se;
+    se.attr         = attrib_calc(r);
+    parser_stack.multi_pop(rule_len);
+    SE top_elem     = parser_stack.top();
+    se.st_num       = next_state(top_elem.st_num, r_info.nt);
+    parser_stack.push(se);
 }
 
 template<typename R_traits, typename Lex_traits, typename S>
