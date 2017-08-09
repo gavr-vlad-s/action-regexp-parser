@@ -10,6 +10,8 @@
 #ifndef SLR_PARSER_H
 #define SLR_PARSER_H
 #include <memory>
+#include <map>
+#include <utility>
 #include "../include/myconcepts.h"
 #include "../include/multipop_stack.h"
 
@@ -32,16 +34,6 @@ struct Stack_elem{
     Attributes<Lexem_type> attr;
 };
 
-
-enum class Parser_action_name{
-    OK, Shift, Reduce, Reduce_without_back
-};
-
-struct Parser_action_info{
-    uint16_t kind : 3;
-    uint16_t arg  : 13;
-};
-
 template<typename Rule_type, size_t N>
 struct Rule_traits{
     using Rule_t                = Rule_type;
@@ -57,44 +49,114 @@ struct Lexem_traits{
 
 template<typename NT>
 struct Rule_info{
-    NT       nt;  /* target for reducing */
-    uint16_t len; /* rule length */
+    NT      nt;  /* target for reducing */
+    uint8_t len; /* rule length */
 };
 
-template<typename R_traits, typename Lex_traits, typename S>
+#define ANY ((uint8_t)(-1));
+
+struct GOTO_entry{
+    uint8_t from;
+    uint8_t to;
+};
+
+
+enum class Parser_action_name{
+    OK, Shift, Reduce, Reduce_without_back
+};
+
+struct Parser_action_info{
+    uint16_t kind : 3;
+    uint16_t arg  : 13;
+};
+
+#define SHIFT(t)  {Parser_action_name::Shift,  t}
+#define REDUCE(r) {Parser_action_name::Reduce, r}
+#define ACCESS    {Parser_action_name::OK,     0}
+
+template<typename NT>
+using State_and_terminal  = std::pair<size_t, NT>;
+
+template<typename Lex_traits>
+using Parser_action_table = std::map<State_and_terminal<NT>, Parser_action_info>;
+
+template<typename Lex_traits>
+struct SLR_parser_tables{
+    Rule_info<typename Lex_traits::Non_terminal_t>*           rules;
+    GOTO_entry**                                              goto_table;
+    Parser_action_table<typename Lex_traits::Non_terminal_t>* action_table
+};
+
+template<typename R_traits, typename Lex_traits, typename S, typename Container>
 class SLR_parser{
 public:
-    SLR_parser<R_traits, Lex_traits, S>()                       = default;
-    SLR_parser(const SLR_parser<R_traits, Lex_traits, S>& orig) = default;
-    SLR_parser(const std::shared_ptr<S>& scaner_) :
-        parser_stack(Multipop_stack<Stack_elem<Lex_traits::Lexem_t>>()),
-        scaner(scaner_) {}
+    SLR_parser<R_traits, Lex_traits, S>()                                  = default;
+    SLR_parser(const SLR_parser<R_traits, Lex_traits, S, Container>& orig) = default;
+    SLR_parser(const std::shared_ptr<S>&            scaner_,
+               const SLR_parser_tables<Lex_traits>& tables) : scaner(scaner_)
+    {
+        rules        = tables.rules;
+        goto_table   = tables.goto_table;
+        action_table = tables.action_table;
+    }
 
-    virtual ~SLR_parser<R_traits, Lex_traits, S>()              = default;
+    virtual ~SLR_parser<R_traits, Lex_traits, S, Container>()              = default;
 
-    void shift(size_t shifted_state, Lex_traits::Lexem_t e);
-    void reduce_without_back(R_traits::Rule_t r);
-    void reduce(R_traits::Rule_t r);
+    void slr_parsing(Container& buf);
 
 protected:
-    size_t                                          current_state;
-    Lex_traits::Lexem_t                             li;
-    Lex_traits::Terminal_t                          t;
-    Multipop_stack<Stack_elem<Lex_traits::Lexem_t>> parser_stack;
-    std::shared_ptr<S>                              scaner;
-    Stack_elem<Lex_traits::Lexem_t>                 rule_body[R_traits::max_len]
+    using Lexem_type        = typename Lex_traits::Lexem_t;
+    using Non_terminal_type = typename Lex_traits::Non_terminal_t;
+    using Terminal_type     = typename Lex_traits::Terminal_t;
+    using Rule_type         = typename R_traits::Rule_t;
+    using SE                = Stack_elem<Lexem_type>;
 
-    virtual void checker(Lex_traits::Lexem_t l)                                      {}
-    virtual Rule_info<Lex_traits::Non_terminal_t>  get_rule_info(R_traits::Rule_t r) = 0;
-    virtual void generate_command(R_traits::Rule_t r)                                = 0;
-    virtual Attributes<Lex_traits::Non_terminal_t> attrib_calc(R_traits::Rule_t r)   = 0;
-    virtual size_t next_state(size_t s, Lex_traits::Non_terminal_t n)                = 0;
+    size_t                                  current_state;
+    Lexem_type                              li;
+    Terminal_type                           t;
+    Multipop_stack<SE>                      parser_stack;
+    std::shared_ptr<S>                      scaner;
+    SE                                      rule_body[R_traits::max_len]
+    Container                               buf_;
+
+    virtual void                   checker(Lexem_type l)               {}
+    virtual void                   generate_command(Rule_type r)       = 0;
+    virtual Attributes<Lexem_type> attrib_calc(Rule_type r)            = 0;
+    virtual Terminal_type          lexem2terminal(const Lexem_type& l) = 0;
+    virtual Parser_action_info     error_hadling(size_t s)             = 0;
+
+private:
+    void shift(size_t shifted_state, Lex_traits::Lexem_t e);
+    void reduce_without_back(Rule_type r);
+    void reduce(Rule_type r);
+
+    Rule_info<Non_terminal_type>*           rules;
+    GOTO_entry**                            goto_table;
+    Parser_action_table<Non_terminal_type>* action_table
+
+    size_t next_state(size_t s, Non_terminal_type n);
 };
 
-template<typename R_traits, typename Lex_traits, typename S>
-void SLR_parser<R_traits, Lex_traits, S>::shift(size_t shifted_state, Lex_traits::Lexem_t e)
+template<typename R_traits, typename Lex_traits, typename S, typename Container>
+size_t SLR_parser<R_traits, Lex_traits, S, Container>::
+    next_state(size_t s, Non_terminal_type n)
 {
-    using SE = Stack_elem<Lex_traits::Lexem_t>;
+    size_t cs;
+    GOTO_entry  current_entry;
+    GOTO_entry* goto_for_n = goto_table[static_cast<size_t>(n)];
+    while((cs = (current_entry = *goto_for_n++).from) != ANY){
+        if(cs == s){
+            return current_entry.to;
+        }
+    }
+    goto_for_n--;
+    return goto_for_n -> to;
+}
+
+template<typename R_traits, typename Lex_traits, typename S, typename Container>
+void SLR_parser<R_traits, Lex_traits, S, Container>::
+    shift(size_t shifted_state, Lexem_type e)
+{
     SE selem;
     selem.st_num  = shifted_state;
     selem.attr.li = e;
@@ -102,15 +164,16 @@ void SLR_parser<R_traits, Lex_traits, S>::shift(size_t shifted_state, Lex_traits
     checker(e);
 }
 
-template<typename R_traits, typename Lex_traits, typename S>
-void SLR_parser<R_traits, Lex_traits, S>::reduce_without_back(R_traits::Rule_t r)
+template<typename R_traits, typename Lex_traits, typename S, typename Container>
+void SLR_parser<R_traits, Lex_traits, S, Container>::
+    reduce_without_back(Rule_type r)
 {
-    auto   r_info   = get_rule_info(r);
+    auto   r_info   = rules[static_cast<size_t>(r)];
     size_t rule_len = r_info.len;
     parser_stack.get_elems_from_top(rule_body, rule_len);
     generate_command(r);
 
-    using SE = Stack_elem<Lex_traits::Lexem_t>;
+    using SE = Stack_elem<Lexem_type>;
 
     SE se;
     se.attr         = attrib_calc(r);
@@ -120,10 +183,50 @@ void SLR_parser<R_traits, Lex_traits, S>::reduce_without_back(R_traits::Rule_t r
     parser_stack.push(se);
 }
 
-template<typename R_traits, typename Lex_traits, typename S>
-void SLR_parser<R_traits, Lex_traits, S>::reduce(R_traits::Rule_t r)
+template<typename R_traits, typename Lex_traits, typename S, typename Container>
+void SLR_parser<R_traits, Lex_traits, S, Container>::reduce(Rule_type r)
 {
     reduce_without_back(r);
     scaner->back();
+}
+
+template<typename R_traits, typename Lex_traits, typename S, typename Container>
+void SLR_parser<R_traits, Lex_traits, S, Container>::slr_parsing(Container& buf)
+{
+    buf_ = buf;
+
+    SE initial_elem;
+    initial_elem.st_num                   = 0;
+    initial_elem.attr.indeces.begin_index = 0;
+    initial_elem.attr.indeces.end_index   = 0;
+    parser_stack.push(initial_elem);
+
+    for( ; ; ){
+        li = scaner->current_lexem();
+        t = lexem2terminal(li);
+        current_state = parser_stack.top().st_num;
+        auto it = action_table->find({current_state, t});
+        Parser_action_info pai;
+        if(it != action_table.end()){
+            pai = it->second;
+        }else{
+            pai = error_hadling(current_state);
+        }
+        switch(pai.kind){
+            case Act_reduce:
+                reduce(static_cast<Rule_type>(pai.arg));
+                break;
+            case Act_shift:
+                shift(pai.arg, li);
+                break;
+            case Act_reduce_without_back:
+                reduce_without_back(static_cast<Rule_type>(pai.arg));
+                break;
+            case Act_OK:
+                buf = buf_;
+                scaner->back();
+                return;
+        }
+    }
 }
 #endif
