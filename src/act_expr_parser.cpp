@@ -71,130 +71,130 @@ Terminal lexem2terminal(const Expr_lexem_info& l){
  * curly bracket), q means } (closing curly bracket).
  */
 
-Act_expr_parser::Rule_info Act_expr_parser::rules[] = {
-    {Nt_S, 3}, {Nt_T, 3}, {Nt_T, 1}, {Nt_E, 2}, {Nt_E, 1}, {Nt_F, 2},
-    {Nt_F, 1}, {Nt_G, 2}, {Nt_G, 1}, {Nt_H, 1}, {Nt_H, 3}
-};
-
-#define ANY ((uint8_t)(-1))
-struct GOTO_entry{
-    uint8_t from;
-    uint8_t to;
-};
-
-GOTO_entry goto_S[] = {
-    {ANY, 1}
-};
-
-GOTO_entry goto_T[] = {
-    {9, 15}, {ANY, 3}
-};
-
-GOTO_entry goto_E[] = {
-    {10, 16}, {ANY, 4}
-};
-
-GOTO_entry goto_F[] = {
-    {4, 12}, {16, 12}, {ANY, 5}
-};
-
-GOTO_entry goto_G[] = {
-    {ANY, 6}
-};
-
-GOTO_entry goto_H[] = {
-    {ANY, 7}
-};
-
-GOTO_entry* goto_table[] = {
-    goto_S, goto_T, goto_E, goto_F, goto_G, goto_H
-};
-
-void Act_expr_parser::shift(size_t shifted_state, Expr_lexem_info e){
-    Stack_elem selem;
-    selem.st_num   = shifted_state;
-    selem.attr.eli = e;
-    parser_stack.push(selem);
-    (this->*checker)(e);
-}
-
-void Act_expr_parser::reduce(Rule r){
-    reduce_without_back(r);
-    esc_->back();
-}
-
-size_t next_state(size_t s, Non_terminal n){
-    size_t cs;
-    GOTO_entry  current_entry;
-    GOTO_entry* goto_for_n = goto_table[n];
-    while((cs = (current_entry = *goto_for_n++).from) != ANY){
-        if(cs == s){
-            return current_entry.to;
-        }
-    }
-    goto_for_n--;
-    return goto_for_n -> to;
-}
-
-void Act_expr_parser::reduce_without_back(Rule r){
-    size_t rule_len = rules[r].len;
-    parser_stack.get_elems_from_top(rule_body, rule_len);
-    generate_command(r);
-
-    Stack_elem se;
-    se.attr    = (this->*attrib_calc[r])();
-    parser_stack.multi_pop(rule_len);
-    Stack_elem top_elem = parser_stack.top();
-    se.st_num           = next_state(top_elem.st_num, rules[r].nt);
-    parser_stack.push(se);
-}
-
-#define ERROR     {Act_error, 0}
-#define SHIFT(t)  {Act_shift, t}
-#define REDUCE(r) {Act_reduce, r}
-#define ACCESS    {Act_OK, 0}
-
-using State_and_terminal  = std::pair<size_t, Terminal>;
-using Parser_action_table = std::map<State_and_terminal, Parser_action_info>;
-
-const Parser_action_table action_table = {
-    {{0,Term_p},SHIFT(2)},              {{1,End_of_text},ACCESS},
-    {{2,Term_d},SHIFT(8)},              {{2,Term_LP},SHIFT(9)},
-    {{3,Term_b},SHIFT(10)},             {{3,Term_q},SHIFT(11)},
-    {{4,Term_d},SHIFT(8)},              {{4,Term_LP},SHIFT(9)},
-    {{4,Term_b},REDUCE(T_is_E)},        {{4,Term_q},REDUCE(T_is_E)},
-    {{4,Term_RP},REDUCE(T_is_E)},       {{5,Term_b},REDUCE(E_is_F)},
-    {{5,Term_d},REDUCE(E_is_F)},        {{5,Term_q},REDUCE(E_is_F)},
-    {{5,Term_LP},REDUCE(E_is_F)},       {{5,Term_RP},REDUCE(E_is_F)},
-    {{6,Term_b},REDUCE(F_is_G)},        {{6,Term_d},REDUCE(F_is_G)},
-    {{6,Term_q},REDUCE(F_is_G)},        {{6,Term_LP},REDUCE(F_is_G)},
-    {{6,Term_RP},REDUCE(F_is_G)},       {{6,Term_c},SHIFT(13)},
-    {{7,Term_a},SHIFT(14)},             {{7,Term_b},REDUCE(G_is_H)},
-    {{7,Term_c},REDUCE(G_is_H)},        {{7,Term_d},REDUCE(G_is_H)},
-    {{7,Term_q},REDUCE(G_is_H)},        {{7,Term_LP},REDUCE(G_is_H)},
-    {{7,Term_RP},REDUCE(G_is_H)},       {{8,Term_a},REDUCE(H_is_d)},
-    {{8,Term_b},REDUCE(H_is_d)},        {{8,Term_c},REDUCE(H_is_d)},
-    {{8,Term_d},REDUCE(H_is_d)},        {{8,Term_q},REDUCE(H_is_d)},
-    {{8,Term_LP},REDUCE(H_is_d)},       {{8,Term_RP},REDUCE(H_is_d)},
-    {{9,Term_d},SHIFT(8)},              {{9,Term_LP},SHIFT(9)},
-    {{10,Term_d},SHIFT(8)},             {{10,Term_LP},SHIFT(9)},
-    {{11,End_of_text},REDUCE(S_is_pTq)},{{12,Term_b},REDUCE(E_is_EF)},
-    {{12,Term_d},REDUCE(E_is_EF)},      {{12,Term_q},REDUCE(E_is_EF)},
-    {{12,Term_LP},REDUCE(E_is_EF)},     {{12,Term_RP},REDUCE(E_is_EF)},
-    {{13,Term_b},REDUCE(F_is_Gc)},      {{13,Term_d},REDUCE(F_is_Gc)},
-    {{13,Term_q},REDUCE(F_is_Gc)},      {{13,Term_LP},REDUCE(F_is_Gc)},
-    {{13,Term_RP},REDUCE(F_is_Gc)},     {{14,Term_b},REDUCE(G_is_Ha)},
-    {{14,Term_d},REDUCE(G_is_Ha)},      {{14,Term_q},REDUCE(G_is_Ha)},
-    {{14,Term_LP},REDUCE(G_is_Ha)},     {{14,Term_RP},REDUCE(G_is_Ha)},
-    {{14,Term_c},REDUCE(G_is_Ha)},      {{15,Term_b},SHIFT(10)},
-    {{15,Term_RP},SHIFT(17)},           {{16,Term_d},SHIFT(8)},
-    {{16,Term_LP},SHIFT(9)},            {{16,Term_b},REDUCE(T_is_TbE)},
-    {{16,Term_q},REDUCE(T_is_TbE)},     {{16,Term_RP},REDUCE(T_is_TbE)},
-    {{17,Term_a},REDUCE(H_is_LP_T_RP)}, {{17,Term_b},REDUCE(H_is_LP_T_RP)},
-    {{17,Term_c},REDUCE(H_is_LP_T_RP)}, {{17,Term_d},REDUCE(H_is_LP_T_RP)},
-    {{17,Term_q},REDUCE(H_is_LP_T_RP)}, {{17,Term_LP},REDUCE(H_is_LP_T_RP)},
-    {{17,Term_RP},REDUCE(H_is_LP_T_RP)}
-};
+// Act_expr_parser::Rule_info Act_expr_parser::rules[] = {
+//     {Nt_S, 3}, {Nt_T, 3}, {Nt_T, 1}, {Nt_E, 2}, {Nt_E, 1}, {Nt_F, 2},
+//     {Nt_F, 1}, {Nt_G, 2}, {Nt_G, 1}, {Nt_H, 1}, {Nt_H, 3}
+// };
+//
+// #define ANY ((uint8_t)(-1))
+// struct GOTO_entry{
+//     uint8_t from;
+//     uint8_t to;
+// };
+//
+// GOTO_entry goto_S[] = {
+//     {ANY, 1}
+// };
+//
+// GOTO_entry goto_T[] = {
+//     {9, 15}, {ANY, 3}
+// };
+//
+// GOTO_entry goto_E[] = {
+//     {10, 16}, {ANY, 4}
+// };
+//
+// GOTO_entry goto_F[] = {
+//     {4, 12}, {16, 12}, {ANY, 5}
+// };
+//
+// GOTO_entry goto_G[] = {
+//     {ANY, 6}
+// };
+//
+// GOTO_entry goto_H[] = {
+//     {ANY, 7}
+// };
+//
+// GOTO_entry* goto_table[] = {
+//     goto_S, goto_T, goto_E, goto_F, goto_G, goto_H
+// };
+//
+// void Act_expr_parser::shift(size_t shifted_state, Expr_lexem_info e){
+//     Stack_elem selem;
+//     selem.st_num   = shifted_state;
+//     selem.attr.eli = e;
+//     parser_stack.push(selem);
+//     (this->*checker)(e);
+// }
+//
+// void Act_expr_parser::reduce(Rule r){
+//     reduce_without_back(r);
+//     esc_->back();
+// }
+//
+// size_t next_state(size_t s, Non_terminal n){
+//     size_t cs;
+//     GOTO_entry  current_entry;
+//     GOTO_entry* goto_for_n = goto_table[n];
+//     while((cs = (current_entry = *goto_for_n++).from) != ANY){
+//         if(cs == s){
+//             return current_entry.to;
+//         }
+//     }
+//     goto_for_n--;
+//     return goto_for_n -> to;
+// }
+//
+// void Act_expr_parser::reduce_without_back(Rule r){
+//     size_t rule_len = rules[r].len;
+//     parser_stack.get_elems_from_top(rule_body, rule_len);
+//     generate_command(r);
+//
+//     Stack_elem se;
+//     se.attr    = (this->*attrib_calc[r])();
+//     parser_stack.multi_pop(rule_len);
+//     Stack_elem top_elem = parser_stack.top();
+//     se.st_num           = next_state(top_elem.st_num, rules[r].nt);
+//     parser_stack.push(se);
+// }
+//
+// #define ERROR     {Act_error, 0}
+// #define SHIFT(t)  {Act_shift, t}
+// #define REDUCE(r) {Act_reduce, r}
+// #define ACCESS    {Act_OK, 0}
+//
+// using State_and_terminal  = std::pair<size_t, Terminal>;
+// using Parser_action_table = std::map<State_and_terminal, Parser_action_info>;
+//
+// const Parser_action_table action_table = {
+//     {{0,Term_p},SHIFT(2)},              {{1,End_of_text},ACCESS},
+//     {{2,Term_d},SHIFT(8)},              {{2,Term_LP},SHIFT(9)},
+//     {{3,Term_b},SHIFT(10)},             {{3,Term_q},SHIFT(11)},
+//     {{4,Term_d},SHIFT(8)},              {{4,Term_LP},SHIFT(9)},
+//     {{4,Term_b},REDUCE(T_is_E)},        {{4,Term_q},REDUCE(T_is_E)},
+//     {{4,Term_RP},REDUCE(T_is_E)},       {{5,Term_b},REDUCE(E_is_F)},
+//     {{5,Term_d},REDUCE(E_is_F)},        {{5,Term_q},REDUCE(E_is_F)},
+//     {{5,Term_LP},REDUCE(E_is_F)},       {{5,Term_RP},REDUCE(E_is_F)},
+//     {{6,Term_b},REDUCE(F_is_G)},        {{6,Term_d},REDUCE(F_is_G)},
+//     {{6,Term_q},REDUCE(F_is_G)},        {{6,Term_LP},REDUCE(F_is_G)},
+//     {{6,Term_RP},REDUCE(F_is_G)},       {{6,Term_c},SHIFT(13)},
+//     {{7,Term_a},SHIFT(14)},             {{7,Term_b},REDUCE(G_is_H)},
+//     {{7,Term_c},REDUCE(G_is_H)},        {{7,Term_d},REDUCE(G_is_H)},
+//     {{7,Term_q},REDUCE(G_is_H)},        {{7,Term_LP},REDUCE(G_is_H)},
+//     {{7,Term_RP},REDUCE(G_is_H)},       {{8,Term_a},REDUCE(H_is_d)},
+//     {{8,Term_b},REDUCE(H_is_d)},        {{8,Term_c},REDUCE(H_is_d)},
+//     {{8,Term_d},REDUCE(H_is_d)},        {{8,Term_q},REDUCE(H_is_d)},
+//     {{8,Term_LP},REDUCE(H_is_d)},       {{8,Term_RP},REDUCE(H_is_d)},
+//     {{9,Term_d},SHIFT(8)},              {{9,Term_LP},SHIFT(9)},
+//     {{10,Term_d},SHIFT(8)},             {{10,Term_LP},SHIFT(9)},
+//     {{11,End_of_text},REDUCE(S_is_pTq)},{{12,Term_b},REDUCE(E_is_EF)},
+//     {{12,Term_d},REDUCE(E_is_EF)},      {{12,Term_q},REDUCE(E_is_EF)},
+//     {{12,Term_LP},REDUCE(E_is_EF)},     {{12,Term_RP},REDUCE(E_is_EF)},
+//     {{13,Term_b},REDUCE(F_is_Gc)},      {{13,Term_d},REDUCE(F_is_Gc)},
+//     {{13,Term_q},REDUCE(F_is_Gc)},      {{13,Term_LP},REDUCE(F_is_Gc)},
+//     {{13,Term_RP},REDUCE(F_is_Gc)},     {{14,Term_b},REDUCE(G_is_Ha)},
+//     {{14,Term_d},REDUCE(G_is_Ha)},      {{14,Term_q},REDUCE(G_is_Ha)},
+//     {{14,Term_LP},REDUCE(G_is_Ha)},     {{14,Term_RP},REDUCE(G_is_Ha)},
+//     {{14,Term_c},REDUCE(G_is_Ha)},      {{15,Term_b},SHIFT(10)},
+//     {{15,Term_RP},SHIFT(17)},           {{16,Term_d},SHIFT(8)},
+//     {{16,Term_LP},SHIFT(9)},            {{16,Term_b},REDUCE(T_is_TbE)},
+//     {{16,Term_q},REDUCE(T_is_TbE)},     {{16,Term_RP},REDUCE(T_is_TbE)},
+//     {{17,Term_a},REDUCE(H_is_LP_T_RP)}, {{17,Term_b},REDUCE(H_is_LP_T_RP)},
+//     {{17,Term_c},REDUCE(H_is_LP_T_RP)}, {{17,Term_d},REDUCE(H_is_LP_T_RP)},
+//     {{17,Term_q},REDUCE(H_is_LP_T_RP)}, {{17,Term_LP},REDUCE(H_is_LP_T_RP)},
+//     {{17,Term_RP},REDUCE(H_is_LP_T_RP)}
+// };
 
 void Act_expr_parser::checker_for_number_expr(Expr_lexem_info e){
     if(belongs(e.code, 1ULL << Class_ndq | 1ULL << Class_nsq)){
@@ -208,46 +208,46 @@ void Act_expr_parser::checker_for_number_expr(Expr_lexem_info e){
 void Act_expr_parser::checker_for_string_expr(Expr_lexem_info e){
 }
 
-void Act_expr_parser::compile(Command_buffer& buf, Number_or_string kind_of_expr){
-    checker =
-        (kind_of_expr == Number_expr) ? &Act_expr_parser::checker_for_number_expr :
-        &Act_expr_parser::checker_for_string_expr;
-    buf_ = buf;
-
-    Stack_elem initial_elem;
-    initial_elem.st_num                   = 0;
-    initial_elem.attr.indeces.begin_index = 0;
-    initial_elem.attr.indeces.end_index   = 0;
-    parser_stack.push(initial_elem);
-
-    for( ; ; ){
-        eli_ = esc_->current_lexem();
-        t = lexem2terminal(eli_);
-        current_state = parser_stack.top().st_num;
-        auto it = action_table.find({current_state, t});
-        Parser_action_info pai;
-        if(it != action_table.end()){
-            pai = it->second;
-        }else{
-            pai = (this->*error_hadler[current_state])();
-        }
-        switch(pai.kind){
-            case Act_reduce:
-                reduce(static_cast<Rule>(pai.arg));
-                break;
-            case Act_shift:
-                shift(pai.arg, eli_);
-                break;
-            case Act_reduce_without_back:
-                reduce_without_back(static_cast<Rule>(pai.arg));
-                break;
-            case Act_OK:
-                buf = buf_;
-                esc_->back();
-                return;
-        }
-    }
-}
+// void Act_expr_parser::compile(Command_buffer& buf, Number_or_string kind_of_expr){
+//     checker =
+//         (kind_of_expr == Number_expr) ? &Act_expr_parser::checker_for_number_expr :
+//         &Act_expr_parser::checker_for_string_expr;
+//     buf_ = buf;
+//
+//     Stack_elem initial_elem;
+//     initial_elem.st_num                   = 0;
+//     initial_elem.attr.indeces.begin_index = 0;
+//     initial_elem.attr.indeces.end_index   = 0;
+//     parser_stack.push(initial_elem);
+//
+//     for( ; ; ){
+//         eli_ = esc_->current_lexem();
+//         t = lexem2terminal(eli_);
+//         current_state = parser_stack.top().st_num;
+//         auto it = action_table.find({current_state, t});
+//         Parser_action_info pai;
+//         if(it != action_table.end()){
+//             pai = it->second;
+//         }else{
+//             pai = (this->*error_hadler[current_state])();
+//         }
+//         switch(pai.kind){
+//             case Act_reduce:
+//                 reduce(static_cast<Rule>(pai.arg));
+//                 break;
+//             case Act_shift:
+//                 shift(pai.arg, eli_);
+//                 break;
+//             case Act_reduce_without_back:
+//                 reduce_without_back(static_cast<Rule>(pai.arg));
+//                 break;
+//             case Act_OK:
+//                 buf = buf_;
+//                 esc_->back();
+//                 return;
+//         }
+//     }
+// }
 
 Act_expr_parser::Attrib_calculator Act_expr_parser::attrib_calc[] = {
     &Act_expr_parser::attrib_by_S_is_pTq,

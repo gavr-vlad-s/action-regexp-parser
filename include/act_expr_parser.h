@@ -20,12 +20,74 @@
 // #include "../include/stack_elem.h"
 #include "../include/slr_parser.h"
 #include "../include/expr_traits.h"
+#include "../include/expr_slr_tables.h"
 
-class Act_expr_parser :
-    public SLR_parser<Expr_r_traits, Expr_lex_traits, Expr_scaner, Command_buffer>
+using Concrete_SLR_parser =
+    SLR_parser<Expr_r_traits, Expr_lex_traits, Expr_scaner, Command_buffer>;
+
+enum class Number_or_string {
+    Number_expr, String_expr
+};
+
+class Act_expr_parser : public Concrete_SLR_parser
 {
 public:
+    Act_expr_parser()                            = default;
+    ~Act_expr_parser()                           = default;
+    Act_expr_parser(const Act_expr_parser& orig) = default;
+
+    Act_expr_parser(const Expr_scaner_ptr&         esc,
+                    const Errors_and_tries&        et,
+                    const std::shared_ptr<Scope>&  scope,
+                    const SLR_parser_tables<Expr_lex_traits>& tables) :
+       Concrete_SLR_parser(esc, tables), scope_(scope),  et_(et) {};
+
+    void compile(Command_buffer& buf, Number_or_string kind_of_expr);
+
 private:
+    std::shared_ptr<Scope>       scope_;
+    Errors_and_tries             et_;
+
+    using Error_handler = Parser_action_info (Act_expr_parser::*)();
+    static Error_handler error_hadler[];
+
+    using Attrib_calculator = Attributes<Lexem_type> (Act_expr_parser::*)();
+    static Attrib_calculator attrib_calc[];
+
+    Attributes<Lexem_type> attrib_by_S_is_pTq();
+    Attributes<Lexem_type> attrib_by_T_is_TbE();
+    Attributes<Lexem_type> attrib_by_T_is_E();
+    Attributes<Lexem_type> attrib_by_E_is_EF();
+    Attributes<Lexem_type> attrib_by_E_is_F();
+    Attributes<Lexem_type> attrib_by_F_is_Gc();
+    Attributes<Lexem_type> attrib_by_F_is_G();
+    Attributes<Lexem_type> attrib_by_G_is_Ha();
+    Attributes<Lexem_type> attrib_by_G_is_H();
+    Attributes<Lexem_type> attrib_by_H_is_d();
+    Attributes<Lexem_type> attrib_by_H_is_LP_T_RP();
+
+    Parser_action_info state00_error_handler();
+    Parser_action_info state01_error_handler();
+    Parser_action_info state02_error_handler();
+    Parser_action_info state03_error_handler();
+    Parser_action_info state04_error_handler();
+    Parser_action_info state06_error_handler();
+    Parser_action_info state07_error_handler();
+    Parser_action_info state11_error_handler();
+    Parser_action_info state15_error_handler();
+
+    using Checker = void (Act_expr_parser::*)(Expr_lexem_info);
+    Checker checker;
+
+    void checker_for_number_expr(Expr_lexem_info e);
+    void checker_for_string_expr(Expr_lexem_info e);
+
+protected:
+    virtual void                   checker(Lexem_type l);
+    virtual void                   generate_command(Rule_type r);
+    virtual Attributes<Lexem_type> attrib_calc(Rule_type r);
+    virtual Terminal_type          lexem2terminal(const Lexem_type& l);
+    virtual Parser_action_info     error_hadling(size_t s);
 };
 // Terminal lexem2terminal(const Expr_lexem_info& l);
 //

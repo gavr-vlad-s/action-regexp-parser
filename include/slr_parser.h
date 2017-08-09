@@ -80,7 +80,7 @@ protected:
     SE                                      rule_body[R_traits::max_len]
     Container                               buf_;
 
-    virtual void                   checker(Lexem_type l)               {}
+    virtual void                   checker(Lexem_type l)               = 0;
     virtual void                   generate_command(Rule_type r)       = 0;
     virtual Attributes<Lexem_type> attrib_calc(Rule_type r)            = 0;
     virtual Terminal_type          lexem2terminal(const Lexem_type& l) = 0;
@@ -155,6 +155,8 @@ template<typename R_traits, typename Lex_traits, typename S, typename Container>
 void SLR_parser<R_traits, Lex_traits, S, Container>::slr_parsing(Container& buf)
 {
     buf_ = buf;
+
+    parser_stack.clear();
 
     SE initial_elem;
     initial_elem.st_num                   = 0;
