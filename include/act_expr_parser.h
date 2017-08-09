@@ -11,38 +11,22 @@
 #define ACT_EXPR_PARSER_H
 
 #include <memory>
-#include "../include/multipop_stack.h"
+// #include "../include/multipop_stack.h"
 #include "../include/command.h"
 #include "../include/expr_scaner.h"
 #include "../include/expr_lexem_info.h"
 #include "../include/scope.h"
 #include "../include/errors_and_tries.h"
-#include "../include/stack_elem.h"
+// #include "../include/stack_elem.h"
 #include "../include/slr_parser.h"
+#include "../include/expr_traits.h"
 
-enum Rule : uint8_t{
-    S_is_pTq, T_is_TbE,     T_is_E,
-    E_is_EF,  E_is_F,       F_is_Gc,
-    F_is_G,   G_is_Ha,      G_is_H,
-    H_is_d,   H_is_LP_T_RP
+class Act_expr_parser :
+    public SLR_parser<Expr_r_traits, Expr_lex_traits, Expr_scaner, Command_buffer>
+{
+public:
+private:
 };
-
-enum class Non_terminal : uint8_t{
-    Nt_S, Nt_T, Nt_E,
-    Nt_F, Nt_G, Nt_H
-};
-
-enum class Terminal{
-    End_of_text, Term_a,  Term_b,
-    Term_c,      Term_d,  Term_p,
-    Term_q,      Term_LP, Term_RP
-};
-
-using Expr_r_traits  = Rule_traits<Rule, 3>;
-
-using Expr_lex_traits = Lexem_traits<Expr_lexem_info, Terminal, Non_terminal>;
-
-class Act_expr_parser : public SLR_parser<Expr_r_traits, Expr_lex_traits, Expr_scaner>{};
 // Terminal lexem2terminal(const Expr_lexem_info& l);
 //
 // enum Parser_action_name{

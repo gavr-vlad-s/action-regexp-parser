@@ -14,6 +14,7 @@
 #include <utility>
 #include "../include/myconcepts.h"
 #include "../include/multipop_stack.h"
+#include "../include/types_for_slr_tables.h"
 
 template<typename Lexem_type>
 struct Attributes{
@@ -45,46 +46,6 @@ struct Lexem_traits{
     using Lexem_t        = Lexem_type;
     using Terminal_t     = T;
     using Non_terminal_t = NT;
-};
-
-template<typename NT>
-struct Rule_info{
-    NT      nt;  /* target for reducing */
-    uint8_t len; /* rule length */
-};
-
-#define ANY ((uint8_t)(-1));
-
-struct GOTO_entry{
-    uint8_t from;
-    uint8_t to;
-};
-
-
-enum class Parser_action_name{
-    OK, Shift, Reduce, Reduce_without_back
-};
-
-struct Parser_action_info{
-    uint16_t kind : 3;
-    uint16_t arg  : 13;
-};
-
-#define SHIFT(t)  {Parser_action_name::Shift,  t}
-#define REDUCE(r) {Parser_action_name::Reduce, r}
-#define ACCESS    {Parser_action_name::OK,     0}
-
-template<typename NT>
-using State_and_terminal  = std::pair<size_t, NT>;
-
-template<typename Lex_traits>
-using Parser_action_table = std::map<State_and_terminal<NT>, Parser_action_info>;
-
-template<typename Lex_traits>
-struct SLR_parser_tables{
-    Rule_info<typename Lex_traits::Non_terminal_t>*           rules;
-    GOTO_entry**                                              goto_table;
-    Parser_action_table<typename Lex_traits::Non_terminal_t>* action_table
 };
 
 template<typename R_traits, typename Lex_traits, typename S, typename Container>
@@ -212,17 +173,17 @@ void SLR_parser<R_traits, Lex_traits, S, Container>::slr_parsing(Container& buf)
         }else{
             pai = error_hadling(current_state);
         }
-        switch(pai.kind){
-            case Act_reduce:
+        switch(static_cast<Parser_action_name>(pai.kind)){
+            case Parser_action_name::Reduce:
                 reduce(static_cast<Rule_type>(pai.arg));
                 break;
-            case Act_shift:
+            case Parser_action_name::Shift:
                 shift(pai.arg, li);
                 break;
-            case Act_reduce_without_back:
+            case Parser_action_name::Reduce_without_back:
                 reduce_without_back(static_cast<Rule_type>(pai.arg));
                 break;
-            case Act_OK:
+            case Parser_action_name::OK:
                 buf = buf_;
                 scaner->back();
                 return;
