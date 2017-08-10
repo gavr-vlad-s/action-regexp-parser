@@ -11,13 +11,11 @@
 #define ACT_EXPR_PARSER_H
 
 #include <memory>
-// #include "../include/multipop_stack.h"
 #include "../include/command.h"
 #include "../include/expr_scaner.h"
 #include "../include/expr_lexem_info.h"
 #include "../include/scope.h"
 #include "../include/errors_and_tries.h"
-// #include "../include/stack_elem.h"
 #include "../include/slr_parser.h"
 #include "../include/expr_traits.h"
 #include "../include/expr_slr_tables.h"
@@ -25,15 +23,11 @@
 using Concrete_SLR_parser =
     SLR_parser<Expr_r_traits, Expr_lex_traits, Expr_scaner, Command_buffer>;
 
-enum class Number_or_string {
-    Number_expr, String_expr
-};
-
 class Act_expr_parser : public Concrete_SLR_parser
 {
 public:
     Act_expr_parser()                            = default;
-    ~Act_expr_parser()                           = default;
+    virtual ~Act_expr_parser()                   = default;
     Act_expr_parser(const Act_expr_parser& orig) = default;
 
     Act_expr_parser(const Expr_scaner_ptr&         esc,
@@ -42,7 +36,7 @@ public:
                     const SLR_parser_tables<Expr_lex_traits>& tables) :
        Concrete_SLR_parser(esc, tables), scope_(scope),  et_(et) {};
 
-    void compile(Command_buffer& buf, Number_or_string kind_of_expr);
+    void compile(Command_buffer& buf);
 
 private:
     std::shared_ptr<Scope>       scope_;
@@ -52,7 +46,7 @@ private:
     static Error_handler error_hadler[];
 
     using Attrib_calculator = Attributes<Lexem_type> (Act_expr_parser::*)();
-    static Attrib_calculator attrib_calc[];
+    static Attrib_calculator attrib_calculator[];
 
     Attributes<Lexem_type> attrib_by_S_is_pTq();
     Attributes<Lexem_type> attrib_by_T_is_TbE();
@@ -76,19 +70,45 @@ private:
     Parser_action_info state11_error_handler();
     Parser_action_info state15_error_handler();
 
-    using Checker = void (Act_expr_parser::*)(Expr_lexem_info);
-    Checker checker;
-
-    void checker_for_number_expr(Expr_lexem_info e);
-    void checker_for_string_expr(Expr_lexem_info e);
-
 protected:
-    virtual void                   checker(Lexem_type l);
+    virtual void                   checker(Lexem_type l) = 0;
     virtual void                   generate_command(Rule_type r);
     virtual Attributes<Lexem_type> attrib_calc(Rule_type r);
     virtual Terminal_type          lexem2terminal(const Lexem_type& l);
     virtual Parser_action_info     error_hadling(size_t s);
 };
+
+class Num_regexp_parser : public Act_expr_parser{
+public:
+    Num_regexp_parser()                              = default;
+    virtual ~Num_regexp_parser()                     = default;
+    Num_regexp_parser(const Num_regexp_parser& orig) = default;
+    Num_regexp_parser(const Expr_scaner_ptr&         esc,
+                      const Errors_and_tries&        et,
+                      const std::shared_ptr<Scope>&  scope,
+                      const SLR_parser_tables<Expr_lex_traits>& tables) :
+        Act_expr_parser(esc, et, scope, tables) {}
+
+protected:
+    virtual void checker(Expr_lexem_info l);
+};
+
+class Str_regexp_parser : public Act_expr_parser{
+public:
+    Str_regexp_parser()                              = default;
+    virtual ~Str_regexp_parser()                     = default;
+    Str_regexp_parser(const Str_regexp_parser& orig) = default;
+    Str_regexp_parser(const Expr_scaner_ptr&         esc,
+                      const Errors_and_tries&        et,
+                      const std::shared_ptr<Scope>&  scope,
+                      const SLR_parser_tables<Expr_lex_traits>& tables) :
+        Act_expr_parser(esc, et, scope, tables) {}
+
+protected:
+    virtual void checker(Expr_lexem_info l);
+};
+
+
 // Terminal lexem2terminal(const Expr_lexem_info& l);
 //
 // enum Parser_action_name{
