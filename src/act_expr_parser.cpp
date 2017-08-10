@@ -198,8 +198,31 @@ char reduce_rules[] = {
 static const char* expected_opening_curly_brace =
     "An opening curly brace is expected at line %zu.\n";
 
+static const char* expected_char_or_char_class =
+    "A character, a character class, a character class complement, or an "
+    "opening parenthesis is expected at line %zu.\n";
 
-Parser_action_info Act_expr_parser::state00_error_handler(){
+static const char* expected_or_operator =
+    "An operator | or closing brace is expected at line %zu.\n";
+
+static const char* unexpected_action = "Unexpected action at line %zu.\n";
+
+static const char* unexpected_postfix_operator =
+    "Unexpected postfix operator at line %zu.\n";
+
+static const char* unexpected_end_of_text = "Unexpected end of text at line %zu.\n";
+
+static const char* unexpected_opening_brace = "Unexpected opening brace at line %zu.\n";
+
+static const char* expected_or_operator_or_parenthesis =
+    "An operator | or closing parenthesis is expected at line %zu.\n";
+
+static const char* character_class_is_not_allowed =
+    "Error at line %zu: in the regular expression for numbers, a "
+    "character class complement is not allowed.\n";
+
+Parser_action_info Act_expr_parser::state00_error_handler()
+{
     printf(expected_opening_curly_brace, scaner->lexem_begin_line_number());
     et_.ec->increment_number_of_errors();
     if(li.code != Expr_lexem_code::Closed_round_brack){
@@ -211,63 +234,60 @@ Parser_action_info Act_expr_parser::state00_error_handler(){
     return pa;
 }
 
-Parser_action_info Act_expr_parser::state01_error_handler(){
+Parser_action_info Act_expr_parser::state01_error_handler()
+{
     Parser_action_info pa;
     pa.kind = Act_OK; pa.arg = 0;
     return pa;
 }
 
-Parser_action_info Act_expr_parser::state02_error_handler(){
-    printf("The %zu line expects a character, a character class, or an "
-           "opening parenthesis.\n",
-           scaner->lexem_begin_line_number());
+Parser_action_info Act_expr_parser::state02_error_handler()
+{
+    printf(expected_char_or_char_class, scaner->lexem_begin_line_number());
     et_.ec->increment_number_of_errors();
     scaner->back();
-    li.code = Character;
+    li.code = Expr_lexem_code::Character;
     li.c    = 'a';
     Parser_action_info pa;
     pa.kind = Act_shift; pa.arg = 8;
     return pa;
 }
 
-Parser_action_info Act_expr_parser::state03_error_handler(){
-    printf("The %zu line expects an operator | or closing brace.\n",
-           scaner->lexem_begin_line_number());
+Parser_action_info Act_expr_parser::state03_error_handler()
+{
+    printf(expected_or_operator, scaner->lexem_begin_line_number());
     et_.ec->increment_number_of_errors();
-    if(t != Term_p){
+    if(t != Terminal::Term_p){
         scaner->back();
     }
-    li.code = Or;
+    li.code = Expr_lexem_code::Or;
     Parser_action_info pa;
     pa.kind = Act_shift; pa.arg = 10;
     return pa;
 }
 
-Parser_action_info Act_expr_parser::state04_error_handler(){
+Parser_action_info Act_expr_parser::state04_error_handler()
+{
     Rule r = static_cast<Rule>(reduce_rules[current_state]);
     Parser_action_info pa;
     switch(t){
-        case Term_a:
-            printf("Unexpected action on line %zu.\n",
-                   scaner->lexem_begin_line_number());
+        case Terminal::Term_a:
+            printf(unexpected_action, scaner->lexem_begin_line_number());
             pa.kind = Act_reduce; pa.arg = r;
             break;
 
-        case Term_c:
-            printf("Unexpected postfix operator on line %zu.\n",
-                   scaner->lexem_begin_line_number());
+        case Terminal::Term_c:
+            printf(unexpected_postfix_operator, scaner->lexem_begin_line_number());
             pa.kind = Act_reduce; pa.arg = r;
             break;
 
-        case End_of_text:
-            printf("Unexpected end of text on line %zu.\n",
-                   scaner->lexem_begin_line_number());
+        case Terminal::End_of_text:
+            printf(unexpected_end_of_text, scaner->lexem_begin_line_number());
             pa.kind = Act_reduce; pa.arg = r;
             break;
 
-        case Term_p:
-            printf("Unexpected opening brace on line %zu.\n",
-                   scaner->lexem_begin_line_number());
+        case Terminal::Term_p:
+            printf(unexpected_opening_brace, scaner->lexem_begin_line_number());
             pa.kind = Act_reduce_without_back; pa.arg = r;
             break;
 
@@ -277,25 +297,23 @@ Parser_action_info Act_expr_parser::state04_error_handler(){
     return pa;
 }
 
-Parser_action_info Act_expr_parser::state06_error_handler(){
+Parser_action_info Act_expr_parser::state06_error_handler()
+{
     Rule r = static_cast<Rule>(reduce_rules[current_state]);
     Parser_action_info pa;
     switch(t){
-        case Term_a:
-            printf("Unexpected action on line %zu.\n",
-                   scaner->lexem_begin_line_number());
+        case Terminal::Term_a:
+            printf(unexpected_action, scaner->lexem_begin_line_number());
             pa.kind = Act_reduce_without_back; pa.arg = r;
             break;
 
-        case Term_p:
-            printf("Unexpected opening brace on line %zu.\n",
-                   scaner->lexem_begin_line_number());
+        case Terminal::Term_p:
+            printf(unexpected_opening_brace, scaner->lexem_begin_line_number());
             pa.kind = Act_reduce_without_back; pa.arg = r;
             break;
 
-        case End_of_text:
-            printf("Unexpected end of text on line %zu.\n",
-                   scaner->lexem_begin_line_number());
+        case Terminal::End_of_text:
+            printf(unexpected_end_of_text, scaner->lexem_begin_line_number());
             pa.kind = Act_reduce_without_back; pa.arg = r;
             break;
 
@@ -305,52 +323,44 @@ Parser_action_info Act_expr_parser::state06_error_handler(){
     return pa;
 }
 
-Parser_action_info Act_expr_parser::state07_error_handler(){
+Parser_action_info Act_expr_parser::state07_error_handler()
+{
     Rule r = static_cast<Rule>(reduce_rules[current_state]);
     Parser_action_info pa;
-    if(Term_p == t){
-        printf("Unexpected opening brace on line %zu.\n",
-               scaner->lexem_begin_line_number());
+    if(Terminal::Term_p == t){
+        printf(unexpected_opening_brace, scaner->lexem_begin_line_number());
         pa.kind = Act_reduce_without_back; pa.arg = r;
     }else{
-        printf("Unexpected end of text on line %zu.\n",
-               scaner->lexem_begin_line_number());
+        printf(unexpected_end_of_text, scaner->lexem_begin_line_number());
         pa.kind = Act_reduce_without_back; pa.arg = r;
     }
     et_.ec->increment_number_of_errors();
     return pa;
 }
 
-Parser_action_info Act_expr_parser::state11_error_handler(){
+Parser_action_info Act_expr_parser::state11_error_handler()
+{
     Parser_action_info pa;
     pa.kind = Act_reduce; pa.arg = S_is_pTq;
     return pa;
 }
 
-Parser_action_info Act_expr_parser::state15_error_handler(){
-    printf("The %zu line expects an operator | or closing parenthesis.\n",
-           scaner->lexem_begin_line_number());
+Parser_action_info Act_expr_parser::state15_error_handler()
+{
+    printf(expected_or_operator_or_parenthesis, scaner->lexem_begin_line_number());
     et_.ec->increment_number_of_errors();
-    if(t != Term_p){
+    if(t != Terminal::Term_p){
         scaner->back();
     }
-    li.code = Or;
+    li.code = Expr_lexem_code::Or;
     Parser_action_info pa;
     pa.kind = Act_shift; pa.arg = 10;
     return pa;
 }
 
-
-void Act_expr_parser::checker_for_number_expr(Expr_lexem_info e){
-    if(belongs(e.code, 1ULL << Class_ndq | 1ULL << Class_nsq)){
-        printf("Error on the %zu line: in the regular expression for numbers, the "
-               "character classes [:nsq:] and [:ndq:] are not allowed.\n",
-               scaner->lexem_begin_line_number());
-        et_.ec->increment_number_of_errors();
-    }
-}
-
-void Act_expr_parser::checker_for_string_expr(Expr_lexem_info e){
+Parser_action_info Act_expr_parser::error_hadling(size_t s)
+{
+    return (this->*error_hadler[s])();
 }
 
 void Act_expr_parser::generate_command(Rule r){
@@ -430,4 +440,14 @@ void Act_expr_parser::generate_command(Rule r){
         default:
             ;
     }
+}
+
+void Num_regexp_parser::checker(Expr_lexem_info e){
+    if(Expr_lexem_info::Char_class_complement == e.code){
+        printf(character_class_is_not_allowed, scaner->lexem_begin_line_number());
+        et_.ec->increment_number_of_errors();
+    }
+}
+
+void Str_regexp_parser::checker(Expr_lexem_info e){
 }
