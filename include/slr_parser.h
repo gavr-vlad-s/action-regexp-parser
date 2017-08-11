@@ -51,7 +51,7 @@ struct Lexem_traits{
 template<typename R_traits, typename Lex_traits, typename S, typename Container>
 class SLR_parser{
 public:
-    SLR_parser<R_traits, Lex_traits, S>()                                  = default;
+    SLR_parser<R_traits, Lex_traits, S, Container>()                       = default;
     SLR_parser(const SLR_parser<R_traits, Lex_traits, S, Container>& orig) = default;
     SLR_parser(const std::shared_ptr<S>&            scaner_,
                const SLR_parser_tables<Lex_traits>& tables) : scaner(scaner_)
@@ -77,7 +77,7 @@ protected:
     Terminal_type                           t;
     Multipop_stack<SE>                      parser_stack;
     std::shared_ptr<S>                      scaner;
-    SE                                      rule_body[R_traits::max_len]
+    SE                                      rule_body[R_traits::max_len];
     Container                               buf_;
 
     virtual void                   checker(Lexem_type l)               = 0;
@@ -87,13 +87,13 @@ protected:
     virtual Parser_action_info     error_hadling(size_t s)             = 0;
 
 private:
-    void shift(size_t shifted_state, Lex_traits::Lexem_t e);
+    void shift(size_t shifted_state, Lexem_type e);
     void reduce_without_back(Rule_type r);
     void reduce(Rule_type r);
 
-    Rule_info<Non_terminal_type>*           rules;
-    GOTO_entry**                            goto_table;
-    Parser_action_table<Non_terminal_type>* action_table
+    Rule_info<Non_terminal_type>*       rules;
+    GOTO_entry**                        goto_table;
+    Parser_action_table<Terminal_type>* action_table;
 
     size_t next_state(size_t s, Non_terminal_type n);
 };

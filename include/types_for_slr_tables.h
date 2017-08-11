@@ -19,7 +19,7 @@ struct Rule_info{
     uint8_t len; /* rule length */
 };
 
-#define ANY ((uint8_t)(-1));
+#define ANY ((uint8_t)(-1))
 
 struct GOTO_entry{
     uint8_t from;
@@ -37,21 +37,21 @@ struct Parser_action_info{
 };
 
 #ifndef SHIFT
-#define SHIFT(t)  {Parser_action_name::Shift,  t}
-#define REDUCE(r) {Parser_action_name::Reduce, r}
-#define ACCESS    {Parser_action_name::OK,     0}
+#define SHIFT(t)  {static_cast<uint16_t>(Parser_action_name::Shift),  t}
+#define REDUCE(r) {static_cast<uint16_t>(Parser_action_name::Reduce), r}
+#define ACCESS    {static_cast<uint16_t>(Parser_action_name::OK),     0}
 #endif
 
-template<typename NT>
-using State_and_terminal  = std::pair<size_t, NT>;
+template<typename T>
+using State_and_terminal  = std::pair<size_t, T>;
 
 template<typename NT>
 using Parser_action_table = std::map<State_and_terminal<NT>, Parser_action_info>;
 
 template<typename Lex_traits>
 struct SLR_parser_tables{
-    Rule_info<typename Lex_traits::Non_terminal_t>*           rules;
-    GOTO_entry**                                              goto_table;
-    Parser_action_table<typename Lex_traits::Non_terminal_t>* action_table
+    Rule_info<typename Lex_traits::Non_terminal_t>*       rules;
+    GOTO_entry**                                          goto_table;
+    Parser_action_table<typename Lex_traits::Terminal_t>* action_table;
 };
 #endif

@@ -55,27 +55,32 @@ Terminal Act_expr_parser::lexem2terminal(const Expr_lexem_info& l)
     switch(l.code){
         case Expr_lexem_code::Nothing: case Expr_lexem_code::UnknownLexem:
             return Terminal::End_of_text;
+
         case Expr_lexem_code::Action:
             return Terminal::Term_a;
+
         case Expr_lexem_code::Or:
             return Terminal::Term_b;
-        case Expr_lexem_code::Kleene_closure ... Expr_lexem_code::Optional_member:
-            return Terminal::Term_c;
+
         case Expr_lexem_code::Class_complement: case Expr_lexem_code::Character_class:
         case Expr_lexem_code::Character:
             return Terminal::Term_d;
+
         case Expr_lexem_code::Begin_expression:
             return Terminal::Term_p;
+
         case Expr_lexem_code::End_expression:
             return Terminal::Term_q;
+
         case Expr_lexem_code::Opened_round_brack:
             return Terminal::Term_LP;
+
         case Expr_lexem_code::Closed_round_brack:
             return Terminal::Term_RP;
+
         default:
-            ;
+            return Terminal::Term_c;
     }
-    return Term_d;
 }
 
 Act_expr_parser::Attrib_calculator Act_expr_parser::attrib_calculator[] = {
@@ -230,14 +235,14 @@ Parser_action_info Act_expr_parser::state00_error_handler()
     }
     li.code = Expr_lexem_code::Begin_expression;
     Parser_action_info pa;
-    pa.kind = Act_shift; pa.arg = 2;
+    pa.kind = static_cast<uint16_t>(Parser_action_name::Shift); pa.arg = 2;
     return pa;
 }
 
 Parser_action_info Act_expr_parser::state01_error_handler()
 {
     Parser_action_info pa;
-    pa.kind = Act_OK; pa.arg = 0;
+    pa.kind = static_cast<uint16_t>(Parser_action_name::OK); pa.arg = 0;
     return pa;
 }
 
@@ -249,7 +254,7 @@ Parser_action_info Act_expr_parser::state02_error_handler()
     li.code = Expr_lexem_code::Character;
     li.c    = 'a';
     Parser_action_info pa;
-    pa.kind = Act_shift; pa.arg = 8;
+    pa.kind = static_cast<uint16_t>(Parser_action_name::Shift); pa.arg = 8;
     return pa;
 }
 
@@ -262,7 +267,7 @@ Parser_action_info Act_expr_parser::state03_error_handler()
     }
     li.code = Expr_lexem_code::Or;
     Parser_action_info pa;
-    pa.kind = Act_shift; pa.arg = 10;
+    pa.kind = static_cast<uint16_t>(Parser_action_name::Shift); pa.arg = 10;
     return pa;
 }
 
@@ -273,22 +278,22 @@ Parser_action_info Act_expr_parser::state04_error_handler()
     switch(t){
         case Terminal::Term_a:
             printf(unexpected_action, scaner->lexem_begin_line_number());
-            pa.kind = Act_reduce; pa.arg = r;
+            pa.kind = static_cast<uint16_t>(Parser_action_name::Reduce); pa.arg = r;
             break;
 
         case Terminal::Term_c:
             printf(unexpected_postfix_operator, scaner->lexem_begin_line_number());
-            pa.kind = Act_reduce; pa.arg = r;
+            pa.kind = static_cast<uint16_t>(Parser_action_name::Reduce); pa.arg = r;
             break;
 
         case Terminal::End_of_text:
             printf(unexpected_end_of_text, scaner->lexem_begin_line_number());
-            pa.kind = Act_reduce; pa.arg = r;
+            pa.kind = static_cast<uint16_t>(Parser_action_name::Reduce); pa.arg = r;
             break;
 
         case Terminal::Term_p:
             printf(unexpected_opening_brace, scaner->lexem_begin_line_number());
-            pa.kind = Act_reduce_without_back; pa.arg = r;
+            pa.kind = static_cast<uint16_t>(Parser_action_name::Reduce_without_back); pa.arg = r;
             break;
 
         default:
@@ -304,17 +309,17 @@ Parser_action_info Act_expr_parser::state06_error_handler()
     switch(t){
         case Terminal::Term_a:
             printf(unexpected_action, scaner->lexem_begin_line_number());
-            pa.kind = Act_reduce_without_back; pa.arg = r;
+            pa.kind = static_cast<uint16_t>(Parser_action_name::Reduce_without_back); pa.arg = r;
             break;
 
         case Terminal::Term_p:
             printf(unexpected_opening_brace, scaner->lexem_begin_line_number());
-            pa.kind = Act_reduce_without_back; pa.arg = r;
+            pa.kind = static_cast<uint16_t>(Parser_action_name::Reduce_without_back); pa.arg = r;
             break;
 
         case Terminal::End_of_text:
             printf(unexpected_end_of_text, scaner->lexem_begin_line_number());
-            pa.kind = Act_reduce_without_back; pa.arg = r;
+            pa.kind = static_cast<uint16_t>(Parser_action_name::Reduce_without_back); pa.arg = r;
             break;
 
         default:
@@ -329,10 +334,10 @@ Parser_action_info Act_expr_parser::state07_error_handler()
     Parser_action_info pa;
     if(Terminal::Term_p == t){
         printf(unexpected_opening_brace, scaner->lexem_begin_line_number());
-        pa.kind = Act_reduce_without_back; pa.arg = r;
+        pa.kind = static_cast<uint16_t>(Parser_action_name::Reduce_without_back); pa.arg = r;
     }else{
         printf(unexpected_end_of_text, scaner->lexem_begin_line_number());
-        pa.kind = Act_reduce_without_back; pa.arg = r;
+        pa.kind = static_cast<uint16_t>(Parser_action_name::Reduce_without_back); pa.arg = r;
     }
     et_.ec->increment_number_of_errors();
     return pa;
@@ -341,7 +346,7 @@ Parser_action_info Act_expr_parser::state07_error_handler()
 Parser_action_info Act_expr_parser::state11_error_handler()
 {
     Parser_action_info pa;
-    pa.kind = Act_reduce; pa.arg = S_is_pTq;
+    pa.kind = static_cast<uint16_t>(Parser_action_name::Reduce); pa.arg = S_is_pTq;
     return pa;
 }
 
@@ -354,7 +359,7 @@ Parser_action_info Act_expr_parser::state15_error_handler()
     }
     li.code = Expr_lexem_code::Or;
     Parser_action_info pa;
-    pa.kind = Act_shift; pa.arg = 10;
+    pa.kind = static_cast<uint16_t>(Parser_action_name::Shift); pa.arg = 10;
     return pa;
 }
 
@@ -371,7 +376,7 @@ void Act_expr_parser::generate_command(Rule r){
     size_t             max_index;
     switch(r){
         case T_is_TbE:
-            com.name        = Cmd_or;
+            com.name        = Command_name::Or;
             com.args.first  = rule_body[0].attr.indeces.end_index;
             com.args.second = rule_body[2].attr.indeces.end_index;
             com.action_name = 0;
@@ -379,7 +384,7 @@ void Act_expr_parser::generate_command(Rule r){
             break;
 
         case E_is_EF:
-            com.name        = Cmd_concat;
+            com.name        = Command_name::Concat;
             com.args.first  = rule_body[0].attr.indeces.end_index;
             com.args.second = rule_body[1].attr.indeces.end_index;
             com.action_name = 0;
@@ -387,24 +392,53 @@ void Act_expr_parser::generate_command(Rule r){
             break;
 
         case F_is_Gc:
-            com.name =
-                static_cast<Command_name>(rule_body[1].attr.eli.code -
-                                          Kleene_closure + Cmd_Kleene);
-            com.args.first = rule_body[0].attr.indeces.end_index;
+            switch(rule_body[1].attr.li.code){
+                case Expr_lexem_code::Kleene_closure:
+                    com.name = Command_name::Kleene;
+                    break;
+                case Expr_lexem_code::Positive_closure:
+                    com.name = Command_name::Positive;
+                    break;
+                case Expr_lexem_code::Optional_member:
+                    com.name = Command_name::Optional;
+                    break;
+                default:
+                    ;
+            }
+//             com.name =
+//                 static_cast<Command_name>(rule_body[1].attr.li.code -
+//                                           Kleene_closure + Cmd_Kleene);
+            com.args.first  = rule_body[0].attr.indeces.end_index;
             com.args.second = 0;
             com.action_name = 0;
             buf_.push_back(com);
             break;
 
         case H_is_d:
-            if(Character == rule_body[0].attr.eli.code){
-                com.name        = Cmd_char_def;
-                com.c           = rule_body[0].attr.eli.c;
-            }else{
-                com.name = Cmd_char_class_def;
-                com.cls  = static_cast<Char_class>(
-                    rule_body[0].attr.eli.code - Class_Latin);
+            switch(rule_body[0].attr.li.code){
+                case Expr_lexem_code::Class_complement:
+                    com.name        = Command_name::Char_class_complement;
+                    com.idx_of_set  = rule_body[0].attr.li.set_of_char_index;
+                    break;
+                case Expr_lexem_code::Character_class:
+                    com.name        = Command_name::Char_class;
+                    com.idx_of_set  = rule_body[0].attr.li.set_of_char_index;
+                    break;
+                case Expr_lexem_code::Character:
+                    com.name        = Command_name::Char;
+                    com.c           = rule_body[0].attr.li.c;
+                    break;
+                default:
+                    ;
             }
+//             if(Expr_lexem_code::Character == rule_body[0].attr.li.code){
+//                 com.name        = Cmd_char_def;
+//                 com.c           = rule_body[0].attr.eli.c;
+//             }else{
+//                 com.name = Cmd_char_class_def;
+//                 com.cls  = static_cast<Char_class>(
+//                     rule_body[0].attr.li.code - Class_Latin);
+//             }
             com.action_name = 0;
             buf_.push_back(com);
             break;
@@ -413,7 +447,7 @@ void Act_expr_parser::generate_command(Rule r){
             /* If the action a is not yet defined, then we display an error message and
              * assume that no action is specified. Otherwise, write down the index of
              * the action name. */
-            act_index = rule_body[1].attr.eli.action_name_index;
+            act_index = rule_body[1].attr.li.action_name_index;
             it        = scope_->idsc.find(act_index);
             if(it == scope_->idsc.end()){
                 printf("The action ");
@@ -443,7 +477,7 @@ void Act_expr_parser::generate_command(Rule r){
 }
 
 void Num_regexp_parser::checker(Expr_lexem_info e){
-    if(Expr_lexem_info::Char_class_complement == e.code){
+    if(Expr_lexem_code::Class_complement == e.code){
         printf(character_class_is_not_allowed, scaner->lexem_begin_line_number());
         et_.ec->increment_number_of_errors();
     }

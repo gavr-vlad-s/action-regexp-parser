@@ -56,7 +56,7 @@ void Multipop_stack<T>::push(const T& elem)
 }
 
 template<typename T>
-void Multipop_stack<T>::get_elems_from_top(T result[], size_t number_of_elems)
+void Multipop_stack<T>::get_elems_from_top(T result[], size_t number_of_elems) const
 {
     if(top_index >= number_of_elems){
         size_t temp = top_index - number_of_elems;

@@ -9,6 +9,7 @@
 #ifndef EXPR_TRAITS_H
 #define EXPR_TRAITS_H
 #include "../include/slr_parser.h"
+#include "../include/expr_lexem_info.h"
 
 enum Rule : uint8_t{
     S_is_pTq, T_is_TbE,     T_is_E,
