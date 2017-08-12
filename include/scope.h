@@ -72,8 +72,8 @@ public:
     /// Mapping of indeces of string literals in the attributes of string literals.
     Str_scope strsc;
 
-    Scope()  = default;
-    ~Scope() = default;
+    Scope()                  = default;
+    ~Scope()                 = default;
     Scope(const Scope& orig) = default;
 };
 #endif

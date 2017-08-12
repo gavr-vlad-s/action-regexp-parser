@@ -170,7 +170,7 @@ void SLR_parser<R_traits, Lex_traits, S, Container>::slr_parsing(Container& buf)
         current_state = parser_stack.top().st_num;
         auto it = action_table->find({current_state, t});
         Parser_action_info pai;
-        if(it != action_table.end()){
+        if(it != action_table->end()){
             pai = it->second;
         }else{
             pai = error_hadling(current_state);

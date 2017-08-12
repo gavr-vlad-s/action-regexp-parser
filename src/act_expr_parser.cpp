@@ -368,7 +368,8 @@ Parser_action_info Act_expr_parser::error_hadling(size_t s)
     return (this->*error_hadler[s])();
 }
 
-void Act_expr_parser::generate_command(Rule r){
+void Act_expr_parser::generate_command(Rule r)
+{
     Command            com;
     Id_scope::iterator it;
     size_t             act_index;
@@ -476,12 +477,18 @@ void Act_expr_parser::generate_command(Rule r){
     }
 }
 
-void Num_regexp_parser::checker(Expr_lexem_info e){
+void Num_regexp_parser::checker(Expr_lexem_info e)
+{
     if(Expr_lexem_code::Class_complement == e.code){
         printf(character_class_is_not_allowed, scaner->lexem_begin_line_number());
         et_.ec->increment_number_of_errors();
     }
 }
 
-void Str_regexp_parser::checker(Expr_lexem_info e){
+void Str_regexp_parser::checker(Expr_lexem_info e)
+{}
+
+void Act_expr_parser::compile(Command_buffer& buf)
+{
+    slr_parsing(buf);
 }
