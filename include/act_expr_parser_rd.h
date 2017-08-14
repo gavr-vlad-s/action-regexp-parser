@@ -30,13 +30,21 @@ public:
 
 protected:
     virtual void checker(const Expr_lexem_info& e) = 0;
+    Errors_and_tries             et_;
 
 private:
     Command_buffer               buf_;
 
     std::shared_ptr<Expr_scaner> esc_;
     std::shared_ptr<Scope>       scope_;
-    Errors_and_tries             et_;
+
+    Expr_lexem_info              eli;
+    Expr_lexem_code              elc;
+
+    void S_proc();
+    void T_proc();
+    void E_proc();
+    void H_proc();
 };
 
 class Num_act_expr_parser_rd : public Act_expr_parser_rd{
