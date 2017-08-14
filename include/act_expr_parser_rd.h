@@ -28,15 +28,12 @@ public:
 
     void compile(Command_buffer& buf);
 
-protected:
-    virtual void checker(const Expr_lexem_info& e) = 0;
-    Errors_and_tries             et_;
-
 private:
     Command_buffer               buf_;
 
     std::shared_ptr<Expr_scaner> esc_;
     std::shared_ptr<Scope>       scope_;
+    Errors_and_tries             et_;
 
     Expr_lexem_info              eli;
     Expr_lexem_code              elc;
@@ -45,33 +42,12 @@ private:
     void T_proc();
     void E_proc();
     void H_proc();
-};
 
-class Num_act_expr_parser_rd : public Act_expr_parser_rd{
-public:
-    Num_act_expr_parser_rd()                                   = default;
-    virtual ~Num_act_expr_parser_rd()                          = default;
-    Num_act_expr_parser_rd(const Num_act_expr_parser_rd& orig) = default;
-    Num_act_expr_parser_rd(Expr_scaner_ptr&        esc,
-                           const Errors_and_tries& et,
-                           std::shared_ptr<Scope>& scope) :
-        Act_expr_parser_rd(esc, et, scope) {};
+    enum class State_H{
+        Begin,       Leaf_arg,     L_bracket,
+        Br_contents, Right_bracket
+    };
 
-protected:
-    virtual void checker(const Expr_lexem_info& e);
-};
-
-class Str_act_expr_parser_rd : public Act_expr_parser_rd{
-public:
-    Str_act_expr_parser_rd()                                   = default;
-    virtual ~Str_act_expr_parser_rd()                          = default;
-    Str_act_expr_parser_rd(const Str_act_expr_parser_rd& orig) = default;
-    Str_act_expr_parser_rd(Expr_scaner_ptr&        esc,
-                           const Errors_and_tries& et,
-                           std::shared_ptr<Scope>& scope) :
-        Act_expr_parser_rd(esc, et, scope) {};
-
-protected:
-    virtual void checker(const Expr_lexem_info& e);
+    State_H H_proc_begin(const Expr_lexem_info& e);
 };
 #endif

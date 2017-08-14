@@ -77,6 +77,11 @@ static const char* expected_closing_curly_brace =
     "An closing curly brace is expected at line %zu.\n";
 static const char* unexpected_end_of_text =
     "Unexpected end of text at line %zu.\n";
+static const char* expected_char_or_char_class =
+    "A character, a character class, a character class complement, or an "
+    "opening round bracket is expected at line %zu.\n";
+static const char* expected_closing_round_bracket =
+    "An closing round bracket is expected at line %zu.\n";;
 
 void Act_expr_parser_rd::S_proc()
 {
@@ -93,32 +98,31 @@ void Act_expr_parser_rd::S_proc()
                 }else{
                     printf(expected_opening_curly_brace,
                            esc_->lexem_begin_line_number());
+                    et_.ec -> increment_number_of_errors();
                 }
                 break;
-
             case State::Body
                 esc_->back();
                 T_proc();
                 state = State::End_body;
                 break;
-
             case State::End_body
-                if(Terminal::Term_q == t){
-                    state = State::End;
-                }else{
+                state = State::End;
+                if(t != Terminal::Term_q){
                     printf(expected_closing_curly_brace,
                            esc_->lexem_begin_line_number());
+                    et_.ec -> increment_number_of_errors();
+                    esc_->back();
                 }
                 break;
-
             case State::End:
                 esc_->back();
                 return;
         }
     }
-
     if(state != State::End){
         printf(unexpected_end_of_text, esc_->lexem_begin_line_number());
+        et_.ec -> increment_number_of_errors();
         esc_->back();
     }
 }
@@ -147,37 +151,77 @@ void Act_expr_parser_rd::E_proc()
  * | R_bracket   |          |           |             |           | Final state. |
  * |-------------|----------|-----------|-------------|-----------|--------------|
  */
+
+Act_expr_parser_rd::State_H Act_expr_parser_rd::H_proc_begin(const Expr_lexem_info& l)
+{
+    Command  com;
+    State_H state;
+    switch(l.code){
+        case Expr_lexem_code::Opened_round_brack:
+            state           = State::L_bracket;
+            break;
+        case Expr_lexem_code::Character:
+            com.name        = Command_name::Char;
+            com.c           = eli.c;
+            state           = State::Leaf_arg;
+            buf_.push_back(com);
+            break;
+        case Expr_lexem_code::Character_class:
+            com.name        = Command_name::Char_class;
+            com.idx_of_set  = eli.set_of_char_index;
+            state           = State::Leaf_arg;
+            buf_.push_back(com);
+            break;
+        case Expr_lexem_code::Class_complement:
+            com.name        = Command_name::Char_class_complement;
+            com.idx_of_set  = eli.set_of_char_index;
+            state           = State::Leaf_arg;
+            buf_.push_back(com);
+            break;
+        default:
+            printf(expected_char_or_char_class, esc_->lexem_begin_line_number());
+            et_.ec -> increment_number_of_errors();
+            esc_->back();
+            state           = State::Begin;
+    }
+    return state;
+}
+
 void Act_expr_parser_rd::H_proc()
 {
-    enum class State{
-        Begin,       Leaf_arg,     L_bracket,
-        Br_contents, Right_bracket
-    };
     State    state = State::Begin;
     Terminal t
     while((t = elexem2rerminal(eli = esc_->current_lexem())) != Terminal::End_of_text){
         switch(state){
             case State::Begin:
-                switch(t){
-                    case Terminal::Term_LP:
-                        break;
-                    case Terminal::Term_d:
-                        break;
-                    default:
-                        ;
+                state = H_proc_begin(eli);
+                break;
+
+            case State::Leaf_arg:
+                esc_->back();
+                return;
+
+            case State::L_bracket:
+                esc_->back();
+                T_proc();
+                state = State::Br_contents;
+                break;
+
+            case State::Br_contents:
+                state = State::R_bracket;
+                if(t != Terminal::Term_RP){
+                    printf(expected_closing_round_bracket,
+                           esc_->lexem_begin_line_number());
+                    et_.ec -> increment_number_of_errors();
+                    esc_->back();
                 }
                 break;
-            case State::Leaf_arg:
-                break;
-            case State::L_bracket:
-                break;
-            case State::Br_contents:
-                break;
+
             case State::R_bracket:
-                break;
+                esc_->back();
+                return;
         }
     }
-
     if((state != State::Leaf_arg) && (state != State::R_bracket)){
         printf(unexpected_end_of_text, esc_->lexem_begin_line_number());
         esc_->back();
