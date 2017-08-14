@@ -79,7 +79,7 @@ int main(int argc, char** argv)
             auto scope         = std::make_shared<Scope>();
 
             std::shared_ptr<Act_expr_parser> arp;
-#define NUM_TEST
+// #define NUM_TEST
 #ifdef NUM_TEST
             arp = std::make_shared<Num_regexp_parser>(esc, etr, scope, expr_slr_tables);
 #else
