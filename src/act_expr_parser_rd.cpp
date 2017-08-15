@@ -8,6 +8,8 @@
 */
 
 #include <cstdio>
+#include <tuple>
+#include <utility>
 #include "../include/act_expr_parser_rd.h"
 
 /*
@@ -38,7 +40,7 @@ enum class Terminal{
     Term_q,      Term_LP, Term_RP
 };
 
-static Terminal elexem2rerminal(const Expr_lexem_info& l)
+static Terminal elexem2terminal(const Expr_lexem_info& l)
 {
     switch(l.code){
         case Expr_lexem_code::Nothing: case Expr_lexem_code::UnknownLexem:
@@ -89,8 +91,8 @@ void Act_expr_parser_rd::S_proc()
         Begin, Body, End_body, End
     };
     State    state = State::Begin;
-    Terminal t
-    while((t = elexem2rerminal(eli = esc_->current_lexem())) != Terminal::End_of_text){
+    Terminal t;
+    while((t = elexem2terminal(eli = esc_->current_lexem())) != Terminal::End_of_text){
         switch(state){
             case State::Begin
                 if(Terminal::Term_p == t){
@@ -127,8 +129,75 @@ void Act_expr_parser_rd::S_proc()
     }
 }
 
+/*
+ * The function T_proc() implements a finite automaton with the following
+ * transition table:
+ *
+ * |-------------|-------|-----|--------------|
+ * |    state    |   b   |  E  |    Remark    |
+ * |-------------|-------|-----|--------------|
+ * | Begin       |       | End | Start state. |
+ * |-------------|-------|-----|--------------|
+ * | End         | Begin |     | Final state. |
+ * |-------------|-------|-----|--------------|
+ */
+Act_expr_parser_rd::Or_args_info Act_expr_parser_rd::write_or_command(const Or_args_info& a)
+{
+    Or_args_info info = a;
+    Command   com;
+    info.num_of_ors++;
+    if(1 == info.num_of_ors){
+        info.arg1       = buf_.size() - 1;
+    }else{
+        info.arg2       = buf_.size() - 1;
+        com.args.first  = info.arg1;
+        com.args.second = info.arg2;
+        com.name        = Command_name::Or;
+        com.action_name = 0;
+        buf.push_back(command);
+        info.arg1 = buf.size() - 1;
+    }
+    return info;
+}
+
 void Act_expr_parser_rd::T_proc()
-{}
+{
+    enum class State{
+        Begin, End
+    };
+    State     state = State::Begin;
+    Terminal  t;
+    Or_args_info a
+    a.num_of_ors    = 0;
+    a.arg1          = 0;
+    a.arg2          = 0;
+    while((t = elexem2terminal(eli = esc_->current_lexem())) != Terminal::End_of_text){
+        switch(state){
+            case State::Begin:
+                esc_->back();
+                E_proc();
+                a = write_or_command(a);
+                state = State::End;
+                break;
+            case State::End:
+                switch(eli.code){
+                    case Expr_lexem_code::Or:
+                        state = State::Begin;
+                        a.num_of_ors++;
+                        break;
+                    default:
+                        esc_->back();
+                        return;
+                }
+                break;
+        }
+    }
+    if(state != State::End){
+        printf(unexpected_end_of_text, esc_->lexem_begin_line_number());
+        et_.ec -> increment_number_of_errors();
+        esc_->back();
+    }
+}
 
 void Act_expr_parser_rd::E_proc()
 {}
@@ -190,8 +259,8 @@ Act_expr_parser_rd::State_H Act_expr_parser_rd::H_proc_begin(const Expr_lexem_in
 void Act_expr_parser_rd::H_proc()
 {
     State    state = State::Begin;
-    Terminal t
-    while((t = elexem2rerminal(eli = esc_->current_lexem())) != Terminal::End_of_text){
+    Terminal t;
+    while((t = elexem2terminal(eli = esc_->current_lexem())) != Terminal::End_of_text){
         switch(state){
             case State::Begin:
                 state = H_proc_begin(eli);

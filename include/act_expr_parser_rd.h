@@ -10,6 +10,9 @@
 #define ACT_EXPR_PARSER_RD_H
 
 #include <memory>
+#include <utility>
+#include <cstddef>
+#include <tuple>
 #include "../include/command.h"
 #include "../include/expr_scaner.h"
 #include "../include/expr_lexem_info.h"
@@ -49,5 +52,13 @@ private:
     };
 
     State_H H_proc_begin(const Expr_lexem_info& e);
+
+    struct Or_args_info{
+        size_t arg1;
+        size_t arg2;
+        size_t num_of_ors;
+    };
+
+    Or_args_info write_or_command(const Or_args_info& a);
 };
 #endif
