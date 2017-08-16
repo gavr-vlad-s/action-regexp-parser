@@ -54,15 +54,15 @@ private:
     State_H H_proc_begin(const Expr_lexem_info& e);
 
     enum class Operation : size_t{
-        Or_op, Concat_op
+        Or_op, Concat_op, Kleene, Optional, Positive
     };
     struct Args_info{
         size_t    arg1;
         size_t    arg2;
-        size_t    num_of_ors;
+        size_t    num_of_ops;
         Operation op;
     };
 
-    Args_info write_command(const Args_info& a);
+    Args_info write_binary_command(const Args_info& a);
 };
 #endif

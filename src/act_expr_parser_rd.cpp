@@ -141,12 +141,12 @@ void Act_expr_parser_rd::S_proc()
  * | End         | Begin |     | Final state. |
  * |-------------|-------|-----|--------------|
  */
-Act_expr_parser_rd::Args_info Act_expr_parser_rd::write_command(const Args_info& a)
+Act_expr_parser_rd::Args_info Act_expr_parser_rd::write_binary_command(const Args_info& a)
 {
     Args_info info = a;
     Command   com;
-    info.num_of_ors++;
-    if(1 == info.num_of_ors){
+    info.num_of_ops++;
+    if(1 == info.num_of_ops){
         info.arg1       = buf_.size() - 1;
     }else{
         info.arg2       = buf_.size() - 1;
@@ -157,7 +157,7 @@ Act_expr_parser_rd::Args_info Act_expr_parser_rd::write_command(const Args_info&
                           Command_name::Concat;
         com.action_name = 0;
         buf.push_back(command);
-        info.arg1 = buf.size() - 1;
+        info.arg1       = buf.size() - 1;
     }
     return info;
 }
@@ -170,7 +170,7 @@ void Act_expr_parser_rd::T_proc()
     State     state = State::Begin;
     Terminal  t;
     Or_args_info a
-    a.num_of_ors    = 0;
+    a.num_of_ops    = 0;
     a.arg1          = 0;
     a.arg2          = 0;
     a.op            = Operation::Or_op;
@@ -179,14 +179,14 @@ void Act_expr_parser_rd::T_proc()
             case State::Begin:
                 esc_->back();
                 E_proc();
-                a = write_command(a);
+                a = write_binary_command(a);
                 state = State::End;
                 break;
             case State::End:
                 switch(eli.code){
                     case Expr_lexem_code::Or:
                         state = State::Begin;
-                        a.num_of_ors++;
+//                         a.num_of_ops++;
                         break;
                     default:
                         esc_->back();
@@ -226,40 +226,42 @@ void Act_expr_parser_rd::E_proc()
     State     state = State::Begin;
     Terminal  t;
     Or_args_info a
-    a.num_of_ors    = 0;
+    a.num_of_ops    = 0;
     a.arg1          = 0;
     a.arg2          = 0;
     a.op            = Operation::Concat_op;
     while((t = elexem2terminal(eli = esc_->current_lexem())) != Terminal::End_of_text){
         switch(state){
-            case Begin:
+            case Begin: case Unary:
                 esc_->back();
                 H_proc();
-                a = write_command(a);
+                a     = write_binary_command(a);
+                state = State::H_st;
                 break;
             case H_st:
+                switch(t){
+                    case Terminal::Term_a:
+                        break;
+                    case Terminal::Term_c:
+                        break;
+                    default:
+                        esc_->back();
+                        H_proc();
+                        a     = write_binary_command(a);
+                        state = State::H_st;
+                }
                 break;
             case Act:
+                switch(t){
+                    case Terminal::Term_c:
+                        break;
+                    default:
+                        esc_->back();
+                        H_proc();
+                        a     = write_binary_command(a);
+                        state = State::H_st;
+                }
                 break;
-            case Unary:
-                break;
-//             case State::Begin:
-//                 esc_->back();
-//                 E_proc();
-//                 a = write_command(a);
-//                 state = State::End;
-//                 break;
-//             case State::End:
-//                 switch(eli.code){
-//                     case Expr_lexem_code::Or:
-//                         state = State::Begin;
-//                         a.num_of_ors++;
-//                         break;
-//                     default:
-//                         esc_->back();
-//                         return;
-//                 }
-//                 break;
         }
     }
     if(state == State::Begin){
