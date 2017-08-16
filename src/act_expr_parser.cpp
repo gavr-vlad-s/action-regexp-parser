@@ -9,6 +9,7 @@
 
 #include "../include/act_expr_parser.h"
 #include "../include/belongs.h"
+#include "../include/expr_lexem_info.h"
 #include <map>
 #include <cstdio>
 #include <cstdlib>
@@ -24,28 +25,38 @@ Act_expr_parser::Act_expr_parser(Expr_scaner_ptr         esc,
 
 Terminal lexem2terminal(const Expr_lexem_info& l){
     switch(l.code){
-        case Nothing: case UnknownLexem:
+        case Expr_lexem_code::Nothing:         case Expr_lexem_code::UnknownLexem:
             return End_of_text;
-        case Action:
+
+        case Expr_lexem_code::Action:
             return Term_a;
-        case Or:
+
+        case Expr_lexem_code::Or:
             return Term_b;
-        case Kleene_closure ... Optional_member:
-            return Term_c;
-        case Class_Latin ... Class_nsq: case Character:
+
+        case Expr_lexem_code::Character:       case Expr_lexem_code::Class_complement:
+        case Expr_lexem_code::Character_class:
             return Term_d;
-        case Begin_expression:
+
+        case Expr_lexem_code::Begin_expression:
             return Term_p;
-        case End_expression:
+
+        case Expr_lexem_code::End_expression:
             return Term_q;
-        case Opened_round_brack:
+
+        case Expr_lexem_code::Opened_round_brack:
             return Term_LP;
-        case Closed_round_brack:
+
+        case Expr_lexem_code::Closed_round_brack:
             return Term_RP;
+
+        case Expr_lexem_code::Kleene_closure:  case Expr_lexem_code::Positive_closure:
+        case Expr_lexem_code::Optional_member:
+            return Term_c;
+
         default:
-            ;
+            return Term_d;
     }
-    return Term_d;
 }
 
 /* Grammar rules:
@@ -197,9 +208,9 @@ const Parser_action_table action_table = {
 };
 
 void Act_expr_parser::checker_for_number_expr(Expr_lexem_info e){
-    if(belongs(e.code, 1ULL << Class_ndq | 1ULL << Class_nsq)){
-        printf("Error on the %zu line: in the regular expression for numbers, the "
-               "character classes [:nsq:] and [:ndq:] are not allowed.\n",
+    if(Expr_lexem_code::Class_complement == e.code){
+        printf("Error at the %zu line: in the regular expression for numbers, a "
+               "character classs complement is not allowed.\n",
                esc_->lexem_begin_line_number());
         et_.ec->increment_number_of_errors();
     }
@@ -271,7 +282,7 @@ void Act_expr_parser::generate_command(Rule r){
     size_t             max_index;
     switch(r){
         case T_is_TbE:
-            com.name        = Cmd_or;
+            com.name        = Command_name::Or;
             com.args.first  = rule_body[0].attr.indeces.end_index;
             com.args.second = rule_body[2].attr.indeces.end_index;
             com.action_name = 0;
@@ -279,7 +290,7 @@ void Act_expr_parser::generate_command(Rule r){
             break;
 
         case E_is_EF:
-            com.name        = Cmd_concat;
+            com.name        = Command_name::Concat;
             com.args.first  = rule_body[0].attr.indeces.end_index;
             com.args.second = rule_body[1].attr.indeces.end_index;
             com.action_name = 0;
@@ -287,24 +298,50 @@ void Act_expr_parser::generate_command(Rule r){
             break;
 
         case F_is_Gc:
-            com.name =
-                static_cast<Command_name>(rule_body[1].attr.eli.code -
-                                          Kleene_closure + Cmd_Kleene);
-            com.args.first = rule_body[0].attr.indeces.end_index;
+            switch(rule_body[1].attr.eli.code){
+                case Expr_lexem_code::Kleene_closure:
+                    com.name = Command_name::Kleene;
+                    break;
+                case Expr_lexem_code::Positive_closure:
+                    com.name = Command_name::Positive;
+                    break;
+                case Expr_lexem_code::Optional_member:
+                    com.name = Command_name::Optional;
+                    break;
+                default:
+                    ;
+            }
+            com.args.first  = rule_body[0].attr.indeces.end_index;
             com.args.second = 0;
             com.action_name = 0;
             buf_.push_back(com);
             break;
 
         case H_is_d:
-            if(Character == rule_body[0].attr.eli.code){
-                com.name        = Cmd_char_def;
-                com.c           = rule_body[0].attr.eli.c;
-            }else{
-                com.name = Cmd_char_class_def;
-                com.cls  = static_cast<Char_class>(
-                    rule_body[0].attr.eli.code - Class_Latin);
+            switch(rule_body[0].attr.eli.code){
+                case Expr_lexem_code::Character:
+                    com.name        = Command_name::Char;
+                    com.c           = rule_body[0].attr.eli.c;
+                    break;
+                case Expr_lexem_code::Class_complement:
+                    com.name        = Command_name::Char_class_complement;
+                    com.idx_of_set  = rule_body[0].attr.eli.set_of_char_index;
+                    break;
+                case Expr_lexem_code::Character_class:
+                    com.name        = Command_name::Char_class;
+                    com.idx_of_set  = rule_body[0].attr.eli.set_of_char_index;
+                    break;
+                default:
+                    ;
             }
+//             if(Character == rule_body[0].attr.eli.code){
+//                 com.name        = Cmd_char_def;
+//                 com.c           = rule_body[0].attr.eli.c;
+//             }else{
+//                 com.name = Cmd_char_class_def;
+//                 com.cls  = static_cast<Char_class>(
+//                     rule_body[0].attr.eli.code - Class_Latin);
+//             }
             com.action_name = 0;
             buf_.push_back(com);
             break;
@@ -432,10 +469,10 @@ Parser_action_info Act_expr_parser::state00_error_handler(){
     printf("An opening curly brace is expected on the %zu line.\n",
            esc_->lexem_begin_line_number());
     et_.ec->increment_number_of_errors();
-    if(eli_.code != Closed_round_brack){
+    if(eli_.code != Expr_lexem_code::Closed_round_brack){
         esc_->back();
     }
-    eli_.code = Begin_expression;
+    eli_.code = Expr_lexem_code::Begin_expression;
     Parser_action_info pa;
     pa.kind = Act_shift; pa.arg = 2;
     return pa;
@@ -453,7 +490,7 @@ Parser_action_info Act_expr_parser::state02_error_handler(){
            esc_->lexem_begin_line_number());
     et_.ec->increment_number_of_errors();
     esc_->back();
-    eli_.code = Character;
+    eli_.code = Expr_lexem_code::Character;
     eli_.c    = 'a';
     Parser_action_info pa;
     pa.kind = Act_shift; pa.arg = 8;
@@ -467,7 +504,7 @@ Parser_action_info Act_expr_parser::state03_error_handler(){
     if(t != Term_p){
         esc_->back();
     }
-    eli_.code = Or;
+    eli_.code = Expr_lexem_code::Or;
     Parser_action_info pa;
     pa.kind = Act_shift; pa.arg = 10;
     return pa;
@@ -564,7 +601,7 @@ Parser_action_info Act_expr_parser::state15_error_handler(){
     if(t != Term_p){
         esc_->back();
     }
-    eli_.code = Or;
+    eli_.code = Expr_lexem_code::Or;
     Parser_action_info pa;
     pa.kind = Act_shift; pa.arg = 10;
     return pa;

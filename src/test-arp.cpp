@@ -88,7 +88,7 @@ int main(int argc, char** argv)
 // //             auto expr_parser   = std::make_unique<Simple_regex_parser>(esc, etr);
 
             Command_buffer commands;
-            arp->compile(commands);
+//             arp->compile(commands);
             print_commands(commands, trie_for_sets);
         }
     }
