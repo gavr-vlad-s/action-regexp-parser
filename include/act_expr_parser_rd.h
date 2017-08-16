@@ -53,12 +53,16 @@ private:
 
     State_H H_proc_begin(const Expr_lexem_info& e);
 
-    struct Or_args_info{
-        size_t arg1;
-        size_t arg2;
-        size_t num_of_ors;
+    enum class Operation : size_t{
+        Or_op, Concat_op
+    };
+    struct Args_info{
+        size_t    arg1;
+        size_t    arg2;
+        size_t    num_of_ors;
+        Operation op;
     };
 
-    Or_args_info write_or_command(const Or_args_info& a);
+    Args_info write_command(const Args_info& a);
 };
 #endif

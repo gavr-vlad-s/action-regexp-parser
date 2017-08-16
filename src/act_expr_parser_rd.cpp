@@ -141,9 +141,9 @@ void Act_expr_parser_rd::S_proc()
  * | End         | Begin |     | Final state. |
  * |-------------|-------|-----|--------------|
  */
-Act_expr_parser_rd::Or_args_info Act_expr_parser_rd::write_or_command(const Or_args_info& a)
+Act_expr_parser_rd::Args_info Act_expr_parser_rd::write_command(const Args_info& a)
 {
-    Or_args_info info = a;
+    Args_info info = a;
     Command   com;
     info.num_of_ors++;
     if(1 == info.num_of_ors){
@@ -152,7 +152,9 @@ Act_expr_parser_rd::Or_args_info Act_expr_parser_rd::write_or_command(const Or_a
         info.arg2       = buf_.size() - 1;
         com.args.first  = info.arg1;
         com.args.second = info.arg2;
-        com.name        = Command_name::Or;
+        com.name        = (info.op == Operation::Or_op) ?
+                          Command_name::Or              :
+                          Command_name::Concat;
         com.action_name = 0;
         buf.push_back(command);
         info.arg1 = buf.size() - 1;
@@ -171,12 +173,13 @@ void Act_expr_parser_rd::T_proc()
     a.num_of_ors    = 0;
     a.arg1          = 0;
     a.arg2          = 0;
+    a.op            = Operation::Or_op;
     while((t = elexem2terminal(eli = esc_->current_lexem())) != Terminal::End_of_text){
         switch(state){
             case State::Begin:
                 esc_->back();
                 E_proc();
-                a = write_or_command(a);
+                a = write_command(a);
                 state = State::End;
                 break;
             case State::End:
@@ -199,8 +202,72 @@ void Act_expr_parser_rd::T_proc()
     }
 }
 
+/*
+ * The function E_proc() implements a finite automaton with the following
+ * transition table:
+ *
+ * |---------|----------|-----------|-------------|--------------|
+ * |  state  |    a     |     c     |      H      |    Remark    |
+ * |---------|----------|-----------|-------------|--------------|
+ * | Begin   |          |           | H_st        | Start state. |
+ * |---------|----------|-----------|-------------|--------------|
+ * | H_st    | Act      | Unary     | H_st        | Final state. |
+ * |---------|----------|-----------|-------------|--------------|
+ * | Act     |          | Unary     | H_st        | Final state. |
+ * |---------|----------|-----------|-------------|--------------|
+ * | Unary   |          |           | H_st        | Final state. |
+ * |---------|----------|-----------|-------------|--------------|
+ */
 void Act_expr_parser_rd::E_proc()
-{}
+{
+    enum class State{
+        Begin, H_st, Act, Unary
+    };
+    State     state = State::Begin;
+    Terminal  t;
+    Or_args_info a
+    a.num_of_ors    = 0;
+    a.arg1          = 0;
+    a.arg2          = 0;
+    a.op            = Operation::Concat_op;
+    while((t = elexem2terminal(eli = esc_->current_lexem())) != Terminal::End_of_text){
+        switch(state){
+            case Begin:
+                esc_->back();
+                H_proc();
+                a = write_command(a);
+                break;
+            case H_st:
+                break;
+            case Act:
+                break;
+            case Unary:
+                break;
+//             case State::Begin:
+//                 esc_->back();
+//                 E_proc();
+//                 a = write_command(a);
+//                 state = State::End;
+//                 break;
+//             case State::End:
+//                 switch(eli.code){
+//                     case Expr_lexem_code::Or:
+//                         state = State::Begin;
+//                         a.num_of_ors++;
+//                         break;
+//                     default:
+//                         esc_->back();
+//                         return;
+//                 }
+//                 break;
+        }
+    }
+    if(state == State::Begin){
+        printf(unexpected_end_of_text, esc_->lexem_begin_line_number());
+        et_.ec -> increment_number_of_errors();
+        esc_->back();
+    }
+}
 
 /*
  * The function H_proc() implements a finite automaton with the following
@@ -220,7 +287,6 @@ void Act_expr_parser_rd::E_proc()
  * | R_bracket   |          |           |             |           | Final state. |
  * |-------------|----------|-----------|-------------|-----------|--------------|
  */
-
 Act_expr_parser_rd::State_H Act_expr_parser_rd::H_proc_begin(const Expr_lexem_info& l)
 {
     Command  com;
