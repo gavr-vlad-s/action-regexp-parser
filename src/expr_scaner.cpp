@@ -98,7 +98,7 @@ Expr_lexem_info Expr_scaner::convert_lexeme(const Aux_expr_lexem_info aeli)
             eli.code = Expr_lexem_code::Class_complement;
             break;
         case Aux_expr_lexem_code::Class_nsq:
-            compl_set_trie->insertSet(single_quote);
+            eli.set_of_char_index = compl_set_trie->insertSet(single_quote);
             eli.code = Expr_lexem_code::Class_complement;
             break;
         default:

@@ -16,48 +16,87 @@
 
 Act_expr_parser::Act_expr_parser(Expr_scaner_ptr&        esc,
                                  const Errors_and_tries& et,
-                                 std::shared_ptr<Scope>& scope){
+                                 std::shared_ptr<Scope>& scope)
+{
     esc_         = esc;
     scope_       = scope;
     et_          = et;
     parser_stack = Multipop_stack<Stack_elem>();
 }
 
-Terminal lexem2terminal(const Expr_lexem_info& l){
-    switch(l.code){
-        case Expr_lexem_code::Nothing:         case Expr_lexem_code::UnknownLexem:
-            return End_of_text;
+//     Nothing,             UnknownLexem,       Action,
+//     Opened_round_brack,  Closed_round_brack, Or,
+//     Kleene_closure,      Positive_closure,   Optional_member,
+//     Character,           Begin_expression,   End_expression,
+//     Class_complement,    Character_class
 
-        case Expr_lexem_code::Action:
-            return Term_a;
 
-        case Expr_lexem_code::Or:
-            return Term_b;
+Terminal lexem2terminal_map[] = {
+    End_of_text, End_of_text, Term_a,
+    Term_LP,     Term_RP,     Term_b,
+    Term_c,      Term_c,      Term_c,
+    Term_d,      Term_p,      Term_q,
+    Term_d,      Term_d
+};
 
-        case Expr_lexem_code::Character:       case Expr_lexem_code::Class_complement:
-        case Expr_lexem_code::Character_class:
-            return Term_d;
-
-        case Expr_lexem_code::Begin_expression:
-            return Term_p;
-
-        case Expr_lexem_code::End_expression:
-            return Term_q;
-
-        case Expr_lexem_code::Opened_round_brack:
-            return Term_LP;
-
-        case Expr_lexem_code::Closed_round_brack:
-            return Term_RP;
-
-        case Expr_lexem_code::Kleene_closure:  case Expr_lexem_code::Positive_closure:
-        case Expr_lexem_code::Optional_member:
-            return Term_c;
-
-        default:
-            return Term_d;
-    }
+inline Terminal lexem2terminal(const Expr_lexem_info& l)
+{
+    return lexem2terminal_map[static_cast<uint16_t>(l.code)];
+//     Terminal t;
+//     switch(l.code){
+//         case Expr_lexem_code::Nothing:         case Expr_lexem_code::UnknownLexem:
+//             return End_of_text;
+//             break;
+//
+//         case Expr_lexem_code::Action:
+//             return Term_a;
+//             break;
+//
+//         case Expr_lexem_code::Or:
+//             return Term_b;
+//             break;
+//
+//         case Expr_lexem_code::Character:       case Expr_lexem_code::Class_complement:
+//         case Expr_lexem_code::Character_class:
+//             return Term_d;
+//             break;
+//
+//         case Expr_lexem_code::Begin_expression:
+//             return Term_p;
+//             break;
+//
+//         case Expr_lexem_code::End_expression:
+//             return Term_q;
+//             break;
+//
+//         case Expr_lexem_code::Opened_round_brack:
+//             return Term_LP;
+//             break;
+//
+//         case Expr_lexem_code::Closed_round_brack:
+//             return Term_RP;
+//             break;
+//
+//         case Expr_lexem_code::Kleene_closure:  case Expr_lexem_code::Positive_closure:
+//         case Expr_lexem_code::Optional_member:
+//             return Term_c;
+//             break;
+//     }
 }
+
+// #define DEBUG_MODE
+#ifdef DEBUG_MODE
+static const char* terminal_strings[] = {
+    "End_of_text", "Term_a",  "Term_b",
+    "Term_c",      "Term_d",  "Term_p",
+    "Term_q",      "Term_LP", "Term_RP"
+};
+
+void print_terminal(Terminal t)
+{
+    printf("Current terminal: %s.\n",terminal_strings[t]);
+}
+#endif
 
 /* Grammar rules:
  *
@@ -234,6 +273,9 @@ void Act_expr_parser::compile(Command_buffer& buf, Number_or_string kind_of_expr
     for( ; ; ){
         eli_ = esc_->current_lexem();
         t = lexem2terminal(eli_);
+#ifdef DEBUG_MODE
+        print_terminal(t);
+#endif
         current_state = parser_stack.top().st_num;
         auto it = action_table.find({current_state, t});
         Parser_action_info pai;
