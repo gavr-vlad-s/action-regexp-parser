@@ -78,17 +78,14 @@ int main(int argc, char** argv)
             auto esc           = std::make_shared<Expr_scaner>(loc, etr, trie_for_sets);
             auto scope         = std::make_shared<Scope>();
 
-//             std::shared_ptr<Act_expr_parser> arp;
-// // #define NUM_TEST
-// #ifdef NUM_TEST
-//             arp = std::make_shared<Num_regexp_parser>(esc, etr, scope, expr_slr_tables);
-// #else
-//             arp = std::make_shared<Str_regexp_parser>(esc, etr, scope, expr_slr_tables);
-// #endif
-// //             auto expr_parser   = std::make_unique<Simple_regex_parser>(esc, etr);
+            auto arp           = std::make_unique<Act_expr_parser>(esc, etr, scope);
 
             Command_buffer commands;
-//             arp->compile(commands);
+#ifndef NUM_TEST
+            arp->compile(commands, String_expr);
+#else
+            arp->compile(commands, Number_expr);
+#endif
             print_commands(commands, trie_for_sets);
         }
     }

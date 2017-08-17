@@ -67,7 +67,9 @@ void print_command(const Command& e, const Trie_for_set_of_char32ptr& t)
 
 void print_commands(const Command_buffer& buf, const Trie_for_set_of_char32ptr& t)
 {
+    size_t i = 0;
     for(const auto& e : buf){
+        printf("%04zu: ", i++);
         print_command(e, t);
         putchar('\n');
     }

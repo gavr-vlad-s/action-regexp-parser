@@ -58,9 +58,9 @@ public:
     Act_expr_parser()  = default;
     ~Act_expr_parser() = default;
     Act_expr_parser(const Act_expr_parser& orig) = default;
-    Act_expr_parser(Expr_scaner_ptr         esc,
+    Act_expr_parser(Expr_scaner_ptr&        esc,
                     const Errors_and_tries& et,
-                    std::shared_ptr<Scope>  scope);
+                    std::shared_ptr<Scope>& scope);
     void compile(Command_buffer& buf, Number_or_string kind_of_expr);
 private:
     Command_buffer buf_;

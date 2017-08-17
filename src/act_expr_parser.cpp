@@ -14,9 +14,9 @@
 #include <cstdio>
 #include <cstdlib>
 
-Act_expr_parser::Act_expr_parser(Expr_scaner_ptr         esc,
+Act_expr_parser::Act_expr_parser(Expr_scaner_ptr&        esc,
                                  const Errors_and_tries& et,
-                                 std::shared_ptr<Scope>  scope){
+                                 std::shared_ptr<Scope>& scope){
     esc_         = esc;
     scope_       = scope;
     et_          = et;
