@@ -59,6 +59,9 @@ std::u32string init_testing(const char* name)
     return U"";
 }
 
+static const char32_t* write_act_name = U"write";
+static const char32_t* write_act_body = U"buffer += ch;";
+
 int main(int argc, char** argv)
 {
     if(1 == argc){
@@ -77,6 +80,20 @@ int main(int argc, char** argv)
             auto trie_for_sets = std::make_shared<Trie_for_set_of_char32>();
             auto esc           = std::make_shared<Expr_scaner>(loc, etr, trie_for_sets);
             auto scope         = std::make_shared<Scope>();
+
+            Id_attributes iattr;
+            iattr.kind             = Action_name;
+            size_t idx             = etr.ids_trie -> insert(write_act_name);
+//             write_action_name_idx  = idx;
+            size_t body_idx        = etr.strs_trie-> insert(write_act_body);
+            iattr.act_string       = body_idx;
+            scope->idsc[idx]       = iattr;
+
+            Str_attributes sattr;
+            sattr.kind             = Action_definition;
+            sattr.code             = 0;
+            scope->strsc[body_idx] = sattr;
+
 
             auto arp           = std::make_unique<Act_expr_parser>(esc, etr, scope);
 
