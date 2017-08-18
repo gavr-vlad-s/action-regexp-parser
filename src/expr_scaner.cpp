@@ -99,10 +99,10 @@ Expr_lexem_info Expr_scaner::convert_lexeme(const Aux_expr_lexem_info aeli)
             break;
         case Aux_expr_lexem_code::Class_nsq:
             eli.set_of_char_index = compl_set_trie->insertSet(single_quote);
-            eli.code = Expr_lexem_code::Class_complement;
+            eli.code              = Expr_lexem_code::Class_complement;
             break;
         default:
-            eli.code = static_cast<Expr_lexem_code>(aelic);
+            eli.code              = static_cast<Expr_lexem_code>(aelic);
     }
 
     return eli;
@@ -181,9 +181,11 @@ Expr_lexem_info Expr_scaner::current_lexem()
 {
     Expr_lexem_info     eli;
 
-    aelic = (aeli = aux_scaner-> current_lexem()).code;
+    aelic            = (aeli = aux_scaner-> current_lexem()).code;
+    lexem_begin_line = aux_scaner->lexem_begin_line_number();;
+    lexem_begin      = aux_scaner->lexem_begin_ptr();
     switch(aelic){
-        case Aux_expr_lexem_code::Nothing ... Aux_expr_lexem_code::Class_xdigits:
+        case Aux_expr_lexem_code::Nothing       ... Aux_expr_lexem_code::Class_xdigits:
         case Aux_expr_lexem_code::Class_ndq:
         case Aux_expr_lexem_code::Class_nsq:
         case Aux_expr_lexem_code::M_Class_Latin ... Aux_expr_lexem_code::M_Class_nsq:
@@ -202,10 +204,11 @@ Expr_lexem_info Expr_scaner::current_lexem()
 
 size_t Expr_scaner::lexem_begin_line_number()
 {
-    return aux_scaner->lexem_begin_line_number();
+    return lexem_begin_line;
 }
 
 void Expr_scaner::back()
 {
-    aux_scaner->back();
+    loc->pcurrent_char = lexem_begin;
+    loc->current_line  = lexem_begin_line;
 }

@@ -32,7 +32,8 @@ public:
     virtual Lexem_type current_lexem() = 0;
     /* Function lexem_begin_line_number() returns the line number
      * at which the lexem starts. */
-    size_t lexem_begin_line_number() const;
+    size_t    lexem_begin_line_number() const;
+    char32_t* lexem_begin_ptr() const;
 protected:
     int                          state; /* the current state of the current automaton */
 
@@ -63,9 +64,11 @@ protected:
 template<typename Lexem_type>
 Scaner<Lexem_type>::Scaner(const Location_ptr& location, const Errors_and_tries& et)
 {
-    ids = et.ids_trie; strs = et.strs_trie; en = et.ec;
-    loc = location;
-    lexem_begin = location->pcurrent_char;
+    ids              = et.ids_trie;
+    strs             = et.strs_trie;
+    en               = et.ec;
+    loc              = location;
+    lexem_begin      = location->pcurrent_char;
     lexem_begin_line = 1;
 }
 
@@ -73,12 +76,18 @@ template<typename Lexem_type>
 void Scaner<Lexem_type>::back()
 {
     loc->pcurrent_char = lexem_begin;
-    loc->current_line =  lexem_begin_line;
+    loc->current_line  = lexem_begin_line;
 }
 
 template<typename Lexem_type>
 size_t Scaner<Lexem_type>::lexem_begin_line_number() const
 {
     return lexem_begin_line;
+}
+
+template<typename Lexem_type>
+char32_t* Scaner<Lexem_type>::lexem_begin_ptr() const
+{
+    return lexem_begin;
 }
 #endif

@@ -30,7 +30,7 @@ public:
                 const Trie_for_set_of_char32ptr& trie_for_complement_of_set) :
         compl_set_trie(trie_for_complement_of_set),
         aux_scaner(std::make_unique<Aux_expr_scaner>(location, et)),
-        et_(et)
+        et_(et), loc(location)
         {}
     Expr_scaner(const Expr_scaner& orig) = default;
     ~Expr_scaner()                       = default;
@@ -42,6 +42,10 @@ private:
     Trie_for_set_of_char32ptr compl_set_trie;
     Aux_expr_scaner_ptr       aux_scaner;
     Errors_and_tries          et_;
+    Location_ptr              loc;
+
+    size_t                    lexem_begin_line;
+    char32_t*                 lexem_begin;
 
     enum class State{
         Begin_class_complement, First_char,
@@ -104,7 +108,7 @@ private:
     using State_proc = void (Expr_scaner::*)();
 
 
-    std::set<char32_t> curr_set;
+    std::set<char32_t>  curr_set;
 
     static State_proc procs[];
 
