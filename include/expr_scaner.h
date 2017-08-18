@@ -36,7 +36,7 @@ public:
     ~Expr_scaner()                       = default;
 
     Expr_lexem_info current_lexem();
-    size_t          lexem_begin_line_number();
+    size_t          lexem_begin_line_number() const;
     void            back();
 private:
     Trie_for_set_of_char32ptr compl_set_trie;

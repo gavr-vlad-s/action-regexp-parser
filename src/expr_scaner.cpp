@@ -202,7 +202,7 @@ Expr_lexem_info Expr_scaner::current_lexem()
     return eli;
 }
 
-size_t Expr_scaner::lexem_begin_line_number()
+size_t Expr_scaner::lexem_begin_line_number() const
 {
     return lexem_begin_line;
 }
