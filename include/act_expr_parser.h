@@ -107,6 +107,11 @@ private:
     Attributes attrib_by_H_is_LP_T_RP();
 
     void generate_command(Rule r);
+    void generate_by_G_is_Ha();
+    void generate_by_H_is_d();
+    void generate_by_F_is_Gc();
+    void generate_E_is_EF();
+    void generate_by_T_is_TbE();
 
     Parser_action_info state00_error_handler();
     Parser_action_info state01_error_handler();

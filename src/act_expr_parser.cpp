@@ -244,7 +244,8 @@ void Act_expr_parser::checker_for_number_expr(Expr_lexem_info e)
 void Act_expr_parser::checker_for_string_expr(Expr_lexem_info e){
 }
 
-void Act_expr_parser::compile(Command_buffer& buf, Number_or_string kind_of_expr){
+void Act_expr_parser::compile(Command_buffer& buf, Number_or_string kind_of_expr)
+{
     checker =
         (kind_of_expr == Number_expr) ? &Act_expr_parser::checker_for_number_expr :
         &Act_expr_parser::checker_for_string_expr;
@@ -302,96 +303,125 @@ Act_expr_parser::Attrib_calculator Act_expr_parser::attrib_calc[] = {
     &Act_expr_parser::attrib_by_H_is_LP_T_RP
 };
 
-void Act_expr_parser::generate_command(Rule r){
-    Command            com;
+void Act_expr_parser::generate_E_is_EF()
+{
+    Command com;
+    com.name        = Command_name::Concat;
+    com.args.first  = rule_body[0].attr.indeces.end_index;
+    com.args.second = rule_body[1].attr.indeces.end_index;
+    com.action_name = 0;
+    buf_.push_back(com);
+}
+
+void Act_expr_parser::generate_by_F_is_Gc()
+{
+    Command com;
+    switch(rule_body[1].attr.eli.code){
+        case Expr_lexem_code::Kleene_closure:
+            com.name = Command_name::Kleene;
+            break;
+        case Expr_lexem_code::Positive_closure:
+            com.name = Command_name::Positive;
+            break;
+        case Expr_lexem_code::Optional_member:
+            com.name = Command_name::Optional;
+            break;
+        default:
+            ;
+    }
+    com.args.first  = rule_body[0].attr.indeces.end_index;
+    com.args.second = 0;
+    com.action_name = 0;
+    buf_.push_back(com);
+}
+
+void Act_expr_parser::generate_by_H_is_d()
+{
+    Command com;
+    switch(rule_body[0].attr.eli.code){
+        case Expr_lexem_code::Character:
+            com.name        = Command_name::Char;
+            com.c           = rule_body[0].attr.eli.c;
+            break;
+        case Expr_lexem_code::Class_complement:
+            com.name        = Command_name::Char_class_complement;
+            com.idx_of_set  = rule_body[0].attr.eli.set_of_char_index;
+            break;
+        case Expr_lexem_code::Character_class:
+            com.name        = Command_name::Char_class;
+            com.idx_of_set  = rule_body[0].attr.eli.set_of_char_index;
+            break;
+        default:
+            ;
+    }
+    com.action_name = 0;
+    buf_.push_back(com);
+}
+
+void Act_expr_parser::generate_by_G_is_Ha()
+{
     Id_scope::iterator it;
     size_t             act_index;
     size_t             min_index;
     size_t             max_index;
+    /* If the action a is not yet defined, then we display an error message and
+        * assume that no action is specified. Otherwise, write down the index of
+        * the action name. */
+    act_index = rule_body[1].attr.eli.action_name_index;
+    it        = scope_->idsc.find(act_index);
+    if(it == scope_->idsc.end()){
+        printf("The action ");
+        et_.ids_trie->print(act_index);
+        printf(" is not defined at line %zu.\n",
+                esc_->lexem_begin_line_number());
+        et_.ec -> increment_number_of_errors();
+        return;
+    } else if(it->second.kind != Action_name){
+        printf("The identifier ");
+        et_.ids_trie->print(act_index);
+        printf(" is not action name at line %zu.\n",
+                esc_->lexem_begin_line_number());
+        et_.ec -> increment_number_of_errors();
+        return;
+    };
+    min_index = rule_body[0].attr.indeces.begin_index;
+    max_index = rule_body[0].attr.indeces.end_index + 1;
+    for(size_t i = min_index; i < max_index; i++){
+        buf_[i].action_name = act_index;
+    }
+}
+
+void Act_expr_parser::generate_by_T_is_TbE()
+{
+    Command com;
+    com.name        = Command_name::Or;
+    com.args.first  = rule_body[0].attr.indeces.end_index;
+    com.args.second = rule_body[2].attr.indeces.end_index;
+    com.action_name = 0;
+    buf_.push_back(com);
+}
+
+void Act_expr_parser::generate_command(Rule r)
+{
     switch(r){
         case T_is_TbE:
-            com.name        = Command_name::Or;
-            com.args.first  = rule_body[0].attr.indeces.end_index;
-            com.args.second = rule_body[2].attr.indeces.end_index;
-            com.action_name = 0;
-            buf_.push_back(com);
+            generate_by_T_is_TbE();
             break;
 
         case E_is_EF:
-            com.name        = Command_name::Concat;
-            com.args.first  = rule_body[0].attr.indeces.end_index;
-            com.args.second = rule_body[1].attr.indeces.end_index;
-            com.action_name = 0;
-            buf_.push_back(com);
+            generate_E_is_EF();
             break;
 
         case F_is_Gc:
-            switch(rule_body[1].attr.eli.code){
-                case Expr_lexem_code::Kleene_closure:
-                    com.name = Command_name::Kleene;
-                    break;
-                case Expr_lexem_code::Positive_closure:
-                    com.name = Command_name::Positive;
-                    break;
-                case Expr_lexem_code::Optional_member:
-                    com.name = Command_name::Optional;
-                    break;
-                default:
-                    ;
-            }
-            com.args.first  = rule_body[0].attr.indeces.end_index;
-            com.args.second = 0;
-            com.action_name = 0;
-            buf_.push_back(com);
+            generate_by_F_is_Gc();
             break;
 
         case H_is_d:
-            switch(rule_body[0].attr.eli.code){
-                case Expr_lexem_code::Character:
-                    com.name        = Command_name::Char;
-                    com.c           = rule_body[0].attr.eli.c;
-                    break;
-                case Expr_lexem_code::Class_complement:
-                    com.name        = Command_name::Char_class_complement;
-                    com.idx_of_set  = rule_body[0].attr.eli.set_of_char_index;
-                    break;
-                case Expr_lexem_code::Character_class:
-                    com.name        = Command_name::Char_class;
-                    com.idx_of_set  = rule_body[0].attr.eli.set_of_char_index;
-                    break;
-                default:
-                    ;
-            }
-            com.action_name = 0;
-            buf_.push_back(com);
+            generate_by_H_is_d();
             break;
 
         case G_is_Ha:
-            /* If the action a is not yet defined, then we display an error message and
-             * assume that no action is specified. Otherwise, write down the index of
-             * the action name. */
-            act_index = rule_body[1].attr.eli.action_name_index;
-            it        = scope_->idsc.find(act_index);
-            if(it == scope_->idsc.end()){
-                printf("The action ");
-                et_.ids_trie->print(act_index);
-                printf(" is not defined at line %zu.\n",
-                       esc_->lexem_begin_line_number());
-                et_.ec -> increment_number_of_errors();
-                return;
-            } else if(it->second.kind != Action_name){
-                printf("The identifier ");
-                et_.ids_trie->print(act_index);
-                printf(" is not action name at line %zu.\n",
-                       esc_->lexem_begin_line_number());
-                et_.ec -> increment_number_of_errors();
-                return;
-            };
-            min_index = rule_body[0].attr.indeces.begin_index;
-            max_index = rule_body[0].attr.indeces.end_index + 1;
-            for(size_t i = min_index; i < max_index; i++){
-                buf_[i].action_name = act_index;
-            }
+            generate_by_G_is_Ha();
             break;
 
         default:
@@ -399,49 +429,59 @@ void Act_expr_parser::generate_command(Rule r){
     }
 }
 
-Attributes Act_expr_parser::attrib_by_S_is_pTq(){
+Attributes Act_expr_parser::attrib_by_S_is_pTq()
+{
     return rule_body[1].attr;
 }
 
-Attributes Act_expr_parser::attrib_by_T_is_TbE(){
+Attributes Act_expr_parser::attrib_by_T_is_TbE()
+{
     Attributes s = rule_body[0].attr;
     s.indeces.end_index = buf_.size() - 1;
     return s;
 }
 
-Attributes Act_expr_parser::attrib_by_T_is_E(){
+Attributes Act_expr_parser::attrib_by_T_is_E()
+{
     return rule_body[0].attr;
 }
 
-Attributes Act_expr_parser::attrib_by_E_is_EF(){
+Attributes Act_expr_parser::attrib_by_E_is_EF()
+{
     Attributes s = rule_body[0].attr;
     s.indeces.end_index = buf_.size() - 1;
     return s;
 }
 
-Attributes Act_expr_parser::attrib_by_E_is_F(){
+Attributes Act_expr_parser::attrib_by_E_is_F()
+{
     return rule_body[0].attr;
 }
 
-Attributes Act_expr_parser::attrib_by_F_is_Gc(){
+Attributes Act_expr_parser::attrib_by_F_is_Gc()
+{
     Attributes s = rule_body[0].attr;
     s.indeces.end_index = buf_.size() - 1;
     return s;
 }
 
-Attributes Act_expr_parser::attrib_by_F_is_G(){
+Attributes Act_expr_parser::attrib_by_F_is_G()
+{
     return rule_body[0].attr;
 }
 
-Attributes Act_expr_parser::attrib_by_G_is_Ha(){
+Attributes Act_expr_parser::attrib_by_G_is_Ha()
+{
     return rule_body[0].attr;
 }
 
-Attributes Act_expr_parser::attrib_by_G_is_H(){
+Attributes Act_expr_parser::attrib_by_G_is_H()
+{
     return rule_body[0].attr;
 }
 
-Attributes Act_expr_parser::attrib_by_H_is_d(){
+Attributes Act_expr_parser::attrib_by_H_is_d()
+{
     Attributes s;
     s.indeces.begin_index = s.indeces.end_index = buf_.size() - 1;
     return s;
@@ -485,7 +525,8 @@ char reduce_rules[] = {
     T_is_TbE, H_is_LP_T_RP
 };
 
-Parser_action_info Act_expr_parser::state00_error_handler(){
+Parser_action_info Act_expr_parser::state00_error_handler()
+{
     printf(opening_curly_brace_is_expected, esc_->lexem_begin_line_number());
     et_.ec->increment_number_of_errors();
     if(eli_.code != Expr_lexem_code::Closed_round_brack){
@@ -497,13 +538,15 @@ Parser_action_info Act_expr_parser::state00_error_handler(){
     return pa;
 }
 
-Parser_action_info Act_expr_parser::state01_error_handler(){
+Parser_action_info Act_expr_parser::state01_error_handler()
+{
     Parser_action_info pa;
     pa.kind = Act_OK; pa.arg = 0;
     return pa;
 }
 
-Parser_action_info Act_expr_parser::state02_error_handler(){
+Parser_action_info Act_expr_parser::state02_error_handler()
+{
     printf(char_or_char_class_expected, esc_->lexem_begin_line_number());
     et_.ec->increment_number_of_errors();
     esc_->back();
@@ -514,7 +557,8 @@ Parser_action_info Act_expr_parser::state02_error_handler(){
     return pa;
 }
 
-Parser_action_info Act_expr_parser::state03_error_handler(){
+Parser_action_info Act_expr_parser::state03_error_handler()
+{
     printf(or_operator_or_brace_expected, esc_->lexem_begin_line_number());
     et_.ec->increment_number_of_errors();
     if(t != Term_p){
@@ -526,7 +570,8 @@ Parser_action_info Act_expr_parser::state03_error_handler(){
     return pa;
 }
 
-Parser_action_info Act_expr_parser::state04_error_handler(){
+Parser_action_info Act_expr_parser::state04_error_handler()
+{
     Rule r = static_cast<Rule>(reduce_rules[current_state]);
     Parser_action_info pa;
     switch(t){
@@ -556,7 +601,8 @@ Parser_action_info Act_expr_parser::state04_error_handler(){
     return pa;
 }
 
-Parser_action_info Act_expr_parser::state06_error_handler(){
+Parser_action_info Act_expr_parser::state06_error_handler()
+{
     Rule r = static_cast<Rule>(reduce_rules[current_state]);
     Parser_action_info pa;
     switch(t){
@@ -581,7 +627,8 @@ Parser_action_info Act_expr_parser::state06_error_handler(){
     return pa;
 }
 
-Parser_action_info Act_expr_parser::state07_error_handler(){
+Parser_action_info Act_expr_parser::state07_error_handler()
+{
     Rule r = static_cast<Rule>(reduce_rules[current_state]);
     Parser_action_info pa;
     if(Term_p == t){
@@ -595,13 +642,15 @@ Parser_action_info Act_expr_parser::state07_error_handler(){
     return pa;
 }
 
-Parser_action_info Act_expr_parser::state11_error_handler(){
+Parser_action_info Act_expr_parser::state11_error_handler()
+{
     Parser_action_info pa;
     pa.kind = Act_reduce; pa.arg = S_is_pTq;
     return pa;
 }
 
-Parser_action_info Act_expr_parser::state15_error_handler(){
+Parser_action_info Act_expr_parser::state15_error_handler()
+{
     printf(or_operator_or_round_br_closed, esc_->lexem_begin_line_number());
     et_.ec->increment_number_of_errors();
     if(t != Term_p){
