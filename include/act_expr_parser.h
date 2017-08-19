@@ -55,8 +55,8 @@ enum Number_or_string {
 #define NUMBERS_OF_RULES (H_is_LP_T_RP + 1)
 class Act_expr_parser{
 public:
-    Act_expr_parser()  = default;
-    ~Act_expr_parser() = default;
+    Act_expr_parser()                            = default;
+    ~Act_expr_parser()                           = default;
     Act_expr_parser(const Act_expr_parser& orig) = default;
     Act_expr_parser(Expr_scaner_ptr&        esc,
                     const Errors_and_tries& et,
