@@ -19,6 +19,7 @@
 #include "../include/lr_parser.h"
 #include "../include/expr_traits.h"
 #include "../include/expr_lr_tables.h"
+#include "../include/types_for_lr_tables.h"
 
 using Concrete_LR_parser =
     LR_parser<Expr_grammar_traits, Expr_scaner_traits, Command_buffer>;
@@ -39,10 +40,10 @@ private:
     std::shared_ptr<Scope>       scope_;
     Errors_and_tries             et_;
 
-    using Error_handler = Parser_action_info (Act_expr_parser::*)();
+    using Error_handler = Parser_action_info (SLR_act_expr_parser::*)();
     static Error_handler error_hadler[];
 
-    using Attrib_calculator = Attributes<Lexem_type> (Act_expr_parser::*)();
+    using Attrib_calculator = Attributes<Lexem_type> (SLR_act_expr_parser::*)();
     static Attrib_calculator attrib_calculator[];
 
     Attributes<Lexem_type> attrib_by_S_is_pTq();
@@ -57,7 +58,6 @@ private:
     Attributes<Lexem_type> attrib_by_H_is_d();
     Attributes<Lexem_type> attrib_by_H_is_LP_T_RP();
 
-    void generate_command(Rule r);
     void generate_by_G_is_Ha();
     void generate_by_H_is_d();
     void generate_by_F_is_Gc();

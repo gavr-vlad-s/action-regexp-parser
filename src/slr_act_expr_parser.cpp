@@ -15,7 +15,7 @@
 #include "../include/expr_lexem_info.h"
 #include "../include/expr_traits.h"
 
-Terminal lexem2terminal_map[] = {
+static const Terminal lexem2terminal_map[] = {
     Terminal::End_of_text, Terminal::End_of_text, Terminal::Term_a,
     Terminal::Term_LP,     Terminal::Term_RP,     Terminal::Term_b,
     Terminal::Term_c,      Terminal::Term_c,      Terminal::Term_c,
@@ -50,10 +50,6 @@ Terminal SLR_act_expr_parser::lexem2terminal(const Expr_lexem_info& l)
  * operators ? * +, d means a character or a character class, p means { (opening
  * curly bracket), q means } (closing curly bracket).
  */
-
-static const char* character_class_is_not_allowed =
-    "Error at line %zu: in the regular expression for numbers, a "
-    "character classs complement is not allowed.\n";
 
 static const char* opening_curly_brace_is_expected =
     "An opening curly brace is expected at line %zu.\n";
@@ -141,7 +137,7 @@ void SLR_act_expr_parser::generate_E_is_EF()
 void SLR_act_expr_parser::generate_by_F_is_Gc()
 {
     Command com;
-    switch(rule_body[1].attr.eli.code){
+    switch(rule_body[1].attr.li.code){
         case Expr_lexem_code::Kleene_closure:
             com.name = Command_name::Kleene;
             break;
@@ -163,18 +159,18 @@ void SLR_act_expr_parser::generate_by_F_is_Gc()
 void SLR_act_expr_parser::generate_by_H_is_d()
 {
     Command com;
-    switch(rule_body[0].attr.eli.code){
+    switch(rule_body[0].attr.li.code){
         case Expr_lexem_code::Character:
             com.name        = Command_name::Char;
-            com.c           = rule_body[0].attr.eli.c;
+            com.c           = rule_body[0].attr.li.c;
             break;
         case Expr_lexem_code::Class_complement:
             com.name        = Command_name::Char_class_complement;
-            com.idx_of_set  = rule_body[0].attr.eli.set_of_char_index;
+            com.idx_of_set  = rule_body[0].attr.li.set_of_char_index;
             break;
         case Expr_lexem_code::Character_class:
             com.name        = Command_name::Char_class;
-            com.idx_of_set  = rule_body[0].attr.eli.set_of_char_index;
+            com.idx_of_set  = rule_body[0].attr.li.set_of_char_index;
             break;
         default:
             ;
@@ -192,20 +188,20 @@ void SLR_act_expr_parser::generate_by_G_is_Ha()
     /* If the action a is not yet defined, then we display an error message and
         * assume that no action is specified. Otherwise, write down the index of
         * the action name. */
-    act_index = rule_body[1].attr.eli.action_name_index;
+    act_index = rule_body[1].attr.li.action_name_index;
     it        = scope_->idsc.find(act_index);
     if(it == scope_->idsc.end()){
         printf("The action ");
         et_.ids_trie->print(act_index);
         printf(" is not defined at line %zu.\n",
-                esc_->lexem_begin_line_number());
+                scaner->lexem_begin_line_number());
         et_.ec -> increment_number_of_errors();
         return;
     } else if(it->second.kind != Action_name){
         printf("The identifier ");
         et_.ids_trie->print(act_index);
         printf(" is not action name at line %zu.\n",
-                esc_->lexem_begin_line_number());
+                scaner->lexem_begin_line_number());
         et_.ec -> increment_number_of_errors();
         return;
     };
@@ -325,12 +321,12 @@ Attributes<Expr_lexem_info> SLR_act_expr_parser::attrib_calc(Rule r)
 /* Functions for error handling: */
 Parser_action_info SLR_act_expr_parser::state00_error_handler()
 {
-    printf(opening_curly_brace_is_expected, esc_->lexem_begin_line_number());
+    printf(opening_curly_brace_is_expected, scaner->lexem_begin_line_number());
     et_.ec->increment_number_of_errors();
-    if(eli_.code != Expr_lexem_code::Closed_round_brack){
-        esc_->back();
+    if(li.code != Expr_lexem_code::Closed_round_brack){
+        scaner->back();
     }
-    eli_.code = Expr_lexem_code::Begin_expression;
+    li.code = Expr_lexem_code::Begin_expression;
     Parser_action_info pa;
     pa.kind   = static_cast<uint16_t>(Parser_action_name::Shift); pa.arg = 2;
     return pa;
@@ -345,11 +341,11 @@ Parser_action_info SLR_act_expr_parser::state01_error_handler()
 
 Parser_action_info SLR_act_expr_parser::state02_error_handler()
 {
-    printf(char_or_char_class_expected, esc_->lexem_begin_line_number());
+    printf(char_or_char_class_expected, scaner->lexem_begin_line_number());
     et_.ec->increment_number_of_errors();
-    esc_->back();
-    eli_.code = Expr_lexem_code::Character;
-    eli_.c    = 'a';
+    scaner->back();
+    li.code = Expr_lexem_code::Character;
+    li.c    = 'a';
     Parser_action_info pa;
     pa.kind = static_cast<uint16_t>(Parser_action_name::Shift); pa.arg = 8;
     return pa;
@@ -357,12 +353,12 @@ Parser_action_info SLR_act_expr_parser::state02_error_handler()
 
 Parser_action_info SLR_act_expr_parser::state03_error_handler()
 {
-    printf(or_operator_or_brace_expected, esc_->lexem_begin_line_number());
+    printf(or_operator_or_brace_expected, scaner->lexem_begin_line_number());
     et_.ec->increment_number_of_errors();
-    if(t != Term_p){
-        esc_->back();
+    if(t != Terminal::Term_p){
+        scaner->back();
     }
-    eli_.code = Expr_lexem_code::Or;
+    li.code = Expr_lexem_code::Or;
     Parser_action_info pa;
     pa.kind = static_cast<uint16_t>(Parser_action_name::Shift); pa.arg = 10;
     return pa;
@@ -373,23 +369,23 @@ Parser_action_info SLR_act_expr_parser::state04_error_handler()
     Rule r = static_cast<Rule>(reduce_rules[current_state]);
     Parser_action_info pa;
     switch(t){
-        case Term_a:
-            printf(unexpected_action, esc_->lexem_begin_line_number());
+        case Terminal::Term_a:
+            printf(unexpected_action, scaner->lexem_begin_line_number());
             pa.kind = static_cast<uint16_t>(Parser_action_name::Reduce); pa.arg = r;
             break;
 
-        case Term_c:
-            printf(unexpected_postfix_operator, esc_->lexem_begin_line_number());
+        case Terminal::Term_c:
+            printf(unexpected_postfix_operator, scaner->lexem_begin_line_number());
             pa.kind = static_cast<uint16_t>(Parser_action_name::Reduce); pa.arg = r;
             break;
 
-        case End_of_text:
-            printf(unexpected_end_of_text, esc_->lexem_begin_line_number());
+        case Terminal::End_of_text:
+            printf(unexpected_end_of_text, scaner->lexem_begin_line_number());
             pa.kind = static_cast<uint16_t>(Parser_action_name::Reduce); pa.arg = r;
             break;
 
-        case Term_p:
-            printf(unexpected_opening_brace, esc_->lexem_begin_line_number());
+        case Terminal::Term_p:
+            printf(unexpected_opening_brace, scaner->lexem_begin_line_number());
             pa.kind = static_cast<uint16_t>(Parser_action_name::Reduce_without_back); pa.arg = r;
             break;
 
@@ -404,18 +400,18 @@ Parser_action_info SLR_act_expr_parser::state06_error_handler()
     Rule r = static_cast<Rule>(reduce_rules[current_state]);
     Parser_action_info pa;
     switch(t){
-        case Term_a:
-            printf(unexpected_action, esc_->lexem_begin_line_number());
+        case Terminal::Term_a:
+            printf(unexpected_action, scaner->lexem_begin_line_number());
             pa.kind = static_cast<uint16_t>(Parser_action_name::Reduce_without_back); pa.arg = r;
             break;
 
-        case Term_p:
-            printf(unexpected_opening_brace, esc_->lexem_begin_line_number());
+        case Terminal::Term_p:
+            printf(unexpected_opening_brace, scaner->lexem_begin_line_number());
             pa.kind = static_cast<uint16_t>(Parser_action_name::Reduce_without_back); pa.arg = r;
             break;
 
-        case End_of_text:
-            printf(unexpected_end_of_text, esc_->lexem_begin_line_number());
+        case Terminal::End_of_text:
+            printf(unexpected_end_of_text, scaner->lexem_begin_line_number());
             pa.kind = static_cast<uint16_t>(Parser_action_name::Reduce_without_back); pa.arg = r;
             break;
 
@@ -429,11 +425,11 @@ Parser_action_info SLR_act_expr_parser::state07_error_handler()
 {
     Rule r = static_cast<Rule>(reduce_rules[current_state]);
     Parser_action_info pa;
-    if(Term_p == t){
-        printf(unexpected_opening_brace, esc_->lexem_begin_line_number());
+    if(Terminal::Term_p == t){
+        printf(unexpected_opening_brace, scaner->lexem_begin_line_number());
         pa.kind = static_cast<uint16_t>(Parser_action_name::Reduce_without_back); pa.arg = r;
     }else{
-        printf(unexpected_end_of_text, esc_->lexem_begin_line_number());
+        printf(unexpected_end_of_text, scaner->lexem_begin_line_number());
         pa.kind = static_cast<uint16_t>(Parser_action_name::Reduce_without_back); pa.arg = r;
     }
     et_.ec->increment_number_of_errors();
@@ -449,12 +445,12 @@ Parser_action_info SLR_act_expr_parser::state11_error_handler()
 
 Parser_action_info SLR_act_expr_parser::state15_error_handler()
 {
-    printf(or_operator_or_round_br_closed, esc_->lexem_begin_line_number());
+    printf(or_operator_or_round_br_closed, scaner->lexem_begin_line_number());
     et_.ec->increment_number_of_errors();
-    if(t != Term_p){
-        esc_->back();
+    if(t != Terminal::Term_p){
+        scaner->back();
     }
-    eli_.code = Expr_lexem_code::Or;
+    li.code = Expr_lexem_code::Or;
     Parser_action_info pa;
     pa.kind = static_cast<uint16_t>(Parser_action_name::Shift); pa.arg = 10;
     return pa;
