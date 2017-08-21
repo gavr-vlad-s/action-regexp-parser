@@ -26,8 +26,9 @@
 #include "../include/command.h"
 #include "../include/print_commands.h"
 #include "../include/scope.h"
-// #include "../include/expr_slr_tables.h"
-#include "../include/act_expr_parser.h"
+#include "../include/expr_lr_tables.h"
+#include "../include/slr_act_expr_parser.h"
+// #include "../include/act_expr_parser.h"
 
 // #include "../include/test_expr_scaner.h"
 
@@ -76,7 +77,6 @@ int main(int argc, char** argv)
             etr.ec             = std::make_shared<Error_count>();
             etr.ids_trie       = std::make_shared<Char_trie>();
             etr.strs_trie      = std::make_shared<Char_trie>();
-//             auto aesc          = std::make_shared<Aux_expr_scaner>(loc,  etr);
             auto trie_for_sets = std::make_shared<Trie_for_set_of_char32>();
             auto esc           = std::make_shared<Expr_scaner>(loc, etr, trie_for_sets);
             auto scope         = std::make_shared<Scope>();
@@ -84,7 +84,6 @@ int main(int argc, char** argv)
             Id_attributes iattr;
             iattr.kind             = Action_name;
             size_t idx             = etr.ids_trie -> insert(write_act_name);
-//             write_action_name_idx  = idx;
             size_t body_idx        = etr.strs_trie-> insert(write_act_body);
             iattr.act_string       = body_idx;
             scope->idsc[idx]       = iattr;
@@ -94,15 +93,20 @@ int main(int argc, char** argv)
             sattr.code             = 0;
             scope->strsc[body_idx] = sattr;
 
+            auto slr_arp           =
+                std::make_unique<SLR_act_expr_parser>(esc, etr, scope, expr_slr_tables);
 
-            auto arp           = std::make_unique<Act_expr_parser>(esc, etr, scope);
+//             auto arp           = std::make_unique<Act_expr_parser>(esc, etr, scope);
 
             Command_buffer commands;
-#ifndef NUM_TEST
-            arp->compile(commands, String_expr);
-#else
-            arp->compile(commands, Number_expr);
-#endif
+
+            slr_arp->compile(commands);
+
+// #ifndef NUM_TEST
+//             arp->compile(commands, String_expr);
+// #else
+//             arp->compile(commands, Number_expr);
+// #endif
             print_commands(commands, trie_for_sets);
         }
     }
